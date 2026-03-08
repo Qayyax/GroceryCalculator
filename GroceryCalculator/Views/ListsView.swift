@@ -10,11 +10,6 @@ import SwiftUI
 
 struct ListsView: View {
     
-    @State private var ListDemo: [GroceryList] = [
-        GroceryList(title: "CVS Grocery list", date: specific),
-        GroceryList(title: "Peter's Groceries", date: specific),
-        GroceryList(title: "Farmer's market run", date: specific),
-    ]
     
     var body: some View {
         NavigationStack {

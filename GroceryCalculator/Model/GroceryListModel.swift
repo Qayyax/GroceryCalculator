@@ -7,7 +7,7 @@
 
 import Foundation
 import SwiftUI
-import Combine
+import Observation
 
 // MARK: - Grocery Item
 public struct GroceryItem: Identifiable, Hashable, Codable {
@@ -55,9 +55,10 @@ public struct GroceryList: Identifiable, Hashable, Codable {
     public var remaining: Decimal { budget - amountSpent }
 }
 
-// MARK: - View Model for Lists
-public final class ListsViewModel: ObservableObject {
-    @Published public private(set) var lists: [GroceryList]
+// MARK: - Observable Store for Lists
+@Observable
+public final class ListsStore {
+    public var lists: [GroceryList]
 
     public init(lists: [GroceryList] = []) {
         self.lists = lists
