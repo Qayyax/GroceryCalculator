@@ -8,9 +8,12 @@
 import SwiftUI
 
 struct NewList: View {
+    var onSave: (String, Double?) -> Void = { _, _ in }
+    
     @State private var title: String = ""
     @State private var budget: Double? = 0.0
     @FocusState private var focusedField: Field?
+    @Environment(\.dismiss) private var dismiss
     
     private enum Field: Hashable { case title, budget }
     
@@ -32,7 +35,7 @@ struct NewList: View {
                 
                 if let budget {
                     Section("Summary") {
-                        LabeledContent("Title", value: title.isEmpty ? "—" : title)
+                        LabeledContent("Title", value: title.isEmpty ? "-" : title)
                         LabeledContent("Budget", value: budget.formatted(.currency(code: Locale.current.currency?.identifier ?? "USD")))
                     }
                 }
@@ -45,7 +48,8 @@ struct NewList: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") {
-                        // TODO: Handle save action
+                        onSave(title, budget)
+                        dismiss()
                     }
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }

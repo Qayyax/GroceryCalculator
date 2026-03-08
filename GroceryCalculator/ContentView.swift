@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
+    
     var body: some View {
         TabView {
             Tab(Constants.Tabs.listPageTitle, systemImage: Constants.Tabs.listPageIcon) {
@@ -26,3 +27,4 @@ struct ContentView: View {
 #Preview {
     ContentView()
 }
+

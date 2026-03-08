@@ -8,9 +8,10 @@
 import SwiftUI
 
 
+//@State  var  listStore = ListsStore()
 struct ListsView: View {
-//    @Environment(ListsStore.self) private var listStore
-    
+    @State private var isPresentingNewList = false
+    @Environment(ListsStore.self) var listStore
     
     var body: some View {
         NavigationStack {
@@ -34,8 +35,7 @@ struct ListsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-//                        listStore.addList(title: "some", budget: 200)
-                        // open a sheet
+                        isPresentingNewList = true
                     } label: {
                         Image(systemName: "plus")
                             .foregroundStyle(.accent)
@@ -43,9 +43,17 @@ struct ListsView: View {
                 }
             }
         }
+        .sheet(isPresented: $isPresentingNewList) {
+            NewList { title, budget in
+                // Convert Double? from NewList to Decimal expected by ListsStore
+                let decimalBudget = Decimal(budget ?? 0)
+                listStore.addList(title: title, budget: decimalBudget)
+            }
+        }
     }
 }
 
 #Preview {
     ListsView()
+        .environment(ListsStore())
 }
