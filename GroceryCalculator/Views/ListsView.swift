@@ -7,7 +7,15 @@
 
 import SwiftUI
 
+
 struct ListsView: View {
+    
+    private var ListDemo: [GroceryList] = [
+        GroceryList(title: "CVS Grocery list", date: specific),
+        GroceryList(title: "Peter's Groceries", date: specific),
+        GroceryList(title: "Farmer's market run", date: specific),
+    ]
+    
     var body: some View {
         ZStack {
             Color.primaryBg
@@ -20,6 +28,10 @@ struct ListsView: View {
                     Text("Search component goes here")
                     
                     // list of items goes here
+                    List(ListDemo) { list in
+                        GroceryListView(title: list.title, date: list.date)
+                    }
+                    Spacer()
                 }
             }
         }

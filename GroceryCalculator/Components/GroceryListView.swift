@@ -7,7 +7,7 @@
 
 import SwiftUI
 let components = DateComponents(year: 2026, month: 3, day: 7, hour: 10, minute: 30)
-  let specific = Calendar.current.date(from: components)!
+let specific = Calendar.current.date(from: components)!
 
 struct GroceryListView: View {
     var title: String
@@ -15,7 +15,7 @@ struct GroceryListView: View {
     var body: some View {
         VStack(alignment: .leading) {
             Text(title)
-                .font(.title.bold())
+                .font(.title2.bold())
             Text(date, format: .dateTime.day().month().year())
         }
     }
