@@ -11,7 +11,7 @@ struct ContentView: View {
     var body: some View {
         TabView {
             Tab(Constants.Tabs.listPageTitle, systemImage: Constants.Tabs.listPageIcon) {
-                Text("List page")
+                ListsView()
             }
             Tab(Constants.Tabs.historyPageTitle, systemImage: Constants.Tabs.historyPageIcon) {
                 Text("History page")

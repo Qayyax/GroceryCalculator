@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct GroceryList: Identifiable {
+struct GroceryListT: Identifiable {
     let title: String
     let date: Date
     let id: UUID = UUID()
