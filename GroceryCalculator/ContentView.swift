@@ -10,13 +10,13 @@ import SwiftUI
 struct ContentView: View {
     var body: some View {
         TabView {
-            Tab("Lists", systemImage: "list.bullet") {
+            Tab(Constants.Tabs.listPageTitle, systemImage: Constants.Tabs.listPageIcon) {
                 Text("List page")
             }
-            Tab("History", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90") {
+            Tab(Constants.Tabs.historyPageTitle, systemImage: Constants.Tabs.historyPageIcon) {
                 Text("History page")
             }
-            Tab("Settings", systemImage: "gearshape") {
+            Tab(Constants.Tabs.settingsPageTitle, systemImage: Constants.Tabs.settingsPageIcon) {
                 Text("Settings page")
             }
         }
