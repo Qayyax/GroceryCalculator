@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct GroceryCalculatorApp: App {
+    @State private var  listStore = ListsStore()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(listStore)
         }
     }
 }

@@ -9,6 +9,7 @@ import SwiftUI
 
 
 struct ListsView: View {
+//    @Environment(ListsStore.self) private var listStore
     
     
     var body: some View {
@@ -22,9 +23,10 @@ struct ListsView: View {
                         .padding(.bottom, 24)
                     
                     // list of items goes here
-                    List(ListDemo) { list in
-                        GroceryListView(title: list.title, date: list.date)
-                    }
+                    // the View should handle tlhe class
+//                    List(ListDemo) { list in
+//                        GroceryListView(title: list.title, date: list.date)
+//                    }
                     Spacer()
                 }
             }
@@ -32,7 +34,8 @@ struct ListsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                       print("added")
+//                        listStore.addList(title: "some", budget: 200)
+                        // open a sheet
                     } label: {
                         Image(systemName: "plus")
                             .foregroundStyle(.accent)
