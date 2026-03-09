@@ -8,7 +8,6 @@
 import SwiftUI
 
 
-//@State  var  listStore = ListsStore()
 struct ListsView: View {
     @State private var isPresentingNewList = false
     @Environment(ListsStore.self) var listStore
@@ -26,9 +25,10 @@ struct ListsView: View {
                     // list of items goes here
                     if !listStore.lists.isEmpty {
                         List(listStore.lists) { list in
-                            GroceryListView(title: list.title, date: list.dateCreated)
+                            NavigationLink(destination: ListDetailsView(groceryList: list)) {
+                                GroceryListView(title: list.title, date: list.dateCreated)
+                            }
                             // TODO:
-                            // - GroceryListView is a navigationLink that goes to the next page
                             // - Working on the next page
                             //  - List Items Page View
                         }

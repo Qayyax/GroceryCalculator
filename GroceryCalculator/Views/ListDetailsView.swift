@@ -8,20 +8,24 @@
 import SwiftUI
 
 struct ListDetailsView: View {
-    let title: String
+    let groceryList: GroceryList
+
     var body: some View {
         ZStack {
-            Color.primaryBg
-                .ignoresSafeArea()
+            Color.primaryBg.ignoresSafeArea()
             VStack {
-                
+                BudgetCard(
+                    budget: groceryList.budget,
+                    remaining: groceryList.remaining,
+                    spent: groceryList.amountSpent,
+                )
+                Spacer()
             }
-            
+            .padding()
         }
-        .navigationTitle(title)
+        .navigationTitle(groceryList.title)
     }
 }
-
 #Preview {
-    ListDetailsView(title: "Test")
+    ListDetailsView(groceryList: GroceryList(id: UUID(), title: "Fish", budget: 200.34))
 }
