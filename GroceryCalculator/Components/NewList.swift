@@ -11,7 +11,7 @@ struct NewList: View {
     var onSave: (String, Double?) -> Void = { _, _ in }
     
     @State private var title: String = ""
-    @State private var budget: Double? = 0.0
+    @State private var budget: Double? = nil
     @FocusState private var focusedField: Field?
     @Environment(\.dismiss) private var dismiss
     
@@ -42,10 +42,6 @@ struct NewList: View {
             }
             .navigationTitle("New List")
             .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") { focusedField = nil }
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") {
                         onSave(title, budget)

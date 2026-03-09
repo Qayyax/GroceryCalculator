@@ -24,6 +24,11 @@ struct ListsView: View {
                         .padding(.bottom, 24)
                     
                     // list of items goes here
+                    if !listStore.lists.isEmpty {
+                        List(listStore.lists) { list in
+                            GroceryListView(title: list.title, date: list.dateCreated)
+                        }
+                    }
                     // the View should handle tlhe class
 //                    List(ListDemo) { list in
 //                        GroceryListView(title: list.title, date: list.date)
