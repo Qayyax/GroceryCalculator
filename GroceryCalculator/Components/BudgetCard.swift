@@ -21,7 +21,7 @@ struct BudgetCard: View {
     }
     
     private func formattedAmount(_ value: Decimal) -> String {
-        if !isPresented { return "••••" }
+        if !isPresented { return "****" }
         let number = NSDecimalNumber(decimal: value)
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
@@ -52,7 +52,7 @@ struct BudgetCard: View {
             // Bottom section
             HStack {
                 Spacer()
-                HStack {
+                HStack(alignment: .center) {
                     Button {
                         isPresented.toggle()
                     } label: {
@@ -60,8 +60,18 @@ struct BudgetCard: View {
                             .font(.system(size: 24))
                             .foregroundStyle(.eyeGray)
                     }
-                    Text(formattedAmount(spent))
-                        .font(.system(size: 48).bold())
+                    
+                    if isPresented {
+                        Text(formattedAmount(spent))
+                            .font(.system(size: 48).bold())
+                    } else {
+                        HStack(spacing: 6.49) {
+                            ForEach(0..<4, id: \.self) { _ in
+                                Image(systemName: "asterisk")
+                                    .font(.system(size: 24).bold())
+                            }
+                       }
+                    }
                 }
             }
             
