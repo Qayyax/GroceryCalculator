@@ -27,12 +27,12 @@ struct ListsView: View {
                     if !listStore.lists.isEmpty {
                         List(listStore.lists) { list in
                             GroceryListView(title: list.title, date: list.dateCreated)
+                            // TODO:
+                            // - GroceryListView is a navigationLink that goes to the next page
+                            // - Working on the next page
+                            //  - List Items Page View
                         }
                     }
-                    // the View should handle tlhe class
-//                    List(ListDemo) { list in
-//                        GroceryListView(title: list.title, date: list.date)
-//                    }
                     Spacer()
                 }
             }
