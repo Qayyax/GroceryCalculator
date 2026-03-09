@@ -19,11 +19,14 @@ struct ListDetailsView: View {
                     remaining: groceryList.remaining,
                     spent: groceryList.amountSpent,
                 )
+                .padding(.bottom, 24)
+                
                 Spacer()
             }
             .padding()
         }
         .navigationTitle(groceryList.title)
+        // navigationActionButton
     }
 }
 #Preview {
