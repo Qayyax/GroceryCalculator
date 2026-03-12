@@ -12,21 +12,12 @@ struct AddItemComponent: View {
     let store: ListsStore
     
     @State private var name: String = ""
-    @State private var priceText: String = ""
+    @State private var price: Decimal = 0
     @Environment(\.dismiss) private var dismiss
     
     private var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !priceText.trimmingCharacters(in: .whitespaces).isEmpty &&
-        priceValue != nil
-    }
-    
-    private var priceValue: Decimal? {
-        // Remove dollar sign and other formatting if present
-        let cleaned = priceText.trimmingCharacters(in: .whitespaces)
-            .replacingOccurrences(of: "$", with: "")
-            .replacingOccurrences(of: ",", with: "")
-        return Decimal(string: cleaned)
+        price > 0
     }
     
     var body: some View {
@@ -48,7 +39,7 @@ struct AddItemComponent: View {
                     
                     Text("Price")
                     
-                    TextField("$0.00", text: $priceText)
+                    TextField("$0.00", value: $price, format: .currency(code: "USD"))
                         .keyboardType(.decimalPad)
                         .padding(.vertical, 14)
                         .padding(.horizontal, 16)
@@ -95,8 +86,6 @@ struct AddItemComponent: View {
     }
     
     private func addItem() {
-        guard let price = priceValue else { return }
-        
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
         store.addItem(to: listID, name: trimmedName, unitPrice: price, quantity: 1)
         dismiss()
