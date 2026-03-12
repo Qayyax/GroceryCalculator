@@ -12,6 +12,8 @@ struct CustomStepper: View {
     let range: ClosedRange<Int>
     
     var body: some View {
+        // TODO:
+        // - Change the color to match the design
         HStack(spacing: 0) {
             Button(action: {
                 if value > range.lowerBound { value -= 1 }

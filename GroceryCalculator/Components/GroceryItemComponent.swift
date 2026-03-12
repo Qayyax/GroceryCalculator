@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct GroceryItemComponent: View {
+    @State private var itemCount: Int = 1
     var body: some View {
         VStack(spacing: 4) {
             HStack(alignment: .top) {
@@ -21,7 +22,12 @@ struct GroceryItemComponent: View {
                 Text("Total Amount")
                     .font(.title2.bold())
             }
-            // Picker goes here
+            .padding(.bottom, 4)
+            HStack {
+                CustomStepper(value: $itemCount, range: 1...1000)
+                Spacer()
+            }
+        
         }
     }
 }
