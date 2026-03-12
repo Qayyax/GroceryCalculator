@@ -19,7 +19,7 @@ struct CustomStepper: View {
                 if value > range.lowerBound { value -= 1 }
             }) {
                 Text("-")
-                    .font(.title)
+                    .bold()
                     .foregroundStyle(.itemAmountGray)
                     .padding(8)
                     .background {
@@ -30,7 +30,6 @@ struct CustomStepper: View {
             .disabled(value == range.lowerBound)
             
             Text("\(value)")
-                .font(.title)
                 .foregroundStyle(.itemAmountGray)
                 .padding(8)
                 .padding(.horizontal, 12)
@@ -43,7 +42,7 @@ struct CustomStepper: View {
                 if value < range.upperBound { value += 1 }
             }) {
                 Text("+")
-                    .font(.title)
+                    .bold()
                     .foregroundStyle(.itemAmountGray)
                     .padding(8)
                     .background {

@@ -8,23 +8,47 @@
 import SwiftUI
 
 struct GroceryItemComponent: View {
-    @State private var itemCount: Int = 1
+    let item: GroceryItem
+    let onQuantityChange: (Int) -> Void
+    
+    @State private var itemCount: Int
+    
+    init(item: GroceryItem, onQuantityChange: @escaping (Int) -> Void = { _ in }) {
+        self.item = item
+        self.onQuantityChange = onQuantityChange
+        _itemCount = State(initialValue: item.quantity)
+    }
+    
+    private func formattedAmount(_ value: Decimal) -> String {
+        let number = NSDecimalNumber(decimal: value)
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        return formatter.string(from: number) ?? "$0.00"
+    }
+    
+    private var currentTotal: Decimal {
+        item.unitPrice * Decimal(itemCount)
+    }
+    
     var body: some View {
         VStack(spacing: 4) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading) {
-                    Text("Item name")
+                    Text(item.name)
                         .font(.title2.weight(.semibold))
-                    Text("Item amount")
+                    Text(formattedAmount(item.unitPrice))
                         .foregroundStyle(.itemAmountGray)
                 }
                 Spacer()
-                Text("Total Amount")
+                Text(formattedAmount(currentTotal))
                     .font(.title2.bold())
             }
-            .padding(.bottom, 4)
+            .padding(.bottom, 14)
             HStack {
                 CustomStepper(value: $itemCount, range: 1...1000)
+                    .onChange(of: itemCount) { _, newValue in
+                        onQuantityChange(newValue)
+                    }
                 Spacer()
             }
         
@@ -33,5 +57,12 @@ struct GroceryItemComponent: View {
 }
 
 #Preview {
-    GroceryItemComponent()
+    GroceryItemComponent(
+        item: GroceryItem(
+            name: "Apples",
+            unitPrice: 2.99,
+            quantity: 3
+        )
+    )
+    .padding()
 }
