@@ -8,12 +8,30 @@
 import SwiftUI
 
 struct AddItemComponent: View {
-    @State privar
+    @State private var name: String = ""
+    @State private var price: Double? = nil
+    @Environment(\.dismiss) private var dismiss
+    
     var body: some View {
         NavigationStack{
-            Form {
-               Text("Product Name")
-               Text("Price")
+            ZStack{
+                Color.primaryBg
+                    .ignoresSafeArea()
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Product Name")
+                    
+                    TextField("Cereal, Bacon, Eggs...", text: $name)
+                        .padding(.vertical, 14)
+                        .padding(.horizontal, 16)
+                        .background{
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(.white)
+                        }
+                    
+                    Text("Price")
+                    Spacer()
+                }
+                
             }
             .navigationTitle("Add item")
         }
