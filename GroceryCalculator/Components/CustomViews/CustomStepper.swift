@@ -12,26 +12,42 @@ struct CustomStepper: View {
     let range: ClosedRange<Int>
     
     var body: some View {
-        HStack {
+        HStack(spacing: 0) {
             Button(action: {
                 if value > range.lowerBound { value -= 1 }
             }) {
-                Image(systemName: "minus.circle.fill")
+                Text("-")
                     .font(.title)
-                    .foregroundColor(value > range.lowerBound ? .red : .gray)
+                    .foregroundStyle(.itemAmountGray)
+                    .padding(8)
+                    .background {
+                        UnevenRoundedRectangle(topLeadingRadius: 10, bottomLeadingRadius: 10, bottomTrailingRadius: 0, topTrailingRadius: 0)
+                            .stroke(.buttonStrokeGray, lineWidth: 0.5)
+                    }
             }
             .disabled(value == range.lowerBound)
             
             Text("\(value)")
                 .font(.title)
-                .frame(width: 50)
-                
+                .foregroundStyle(.itemAmountGray)
+                .padding(8)
+                .padding(.horizontal, 12)
+                .background{
+                    Rectangle()
+                        .stroke(.buttonStrokeGray, lineWidth: 0.5)
+                }
+
             Button(action: {
                 if value < range.upperBound { value += 1 }
             }) {
-                Image(systemName: "plus.circle.fill")
+                Text("+")
                     .font(.title)
-                    .foregroundColor(value < range.upperBound ? .green : .gray)
+                    .foregroundStyle(.itemAmountGray)
+                    .padding(8)
+                    .background {
+                        UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 0, bottomTrailingRadius: 10, topTrailingRadius: 10)
+                            .stroke(.buttonStrokeGray, lineWidth: 0.5)
+                    }
             }
             .disabled(value == range.upperBound)
         }
