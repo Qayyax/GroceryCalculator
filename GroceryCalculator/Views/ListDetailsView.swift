@@ -21,6 +21,13 @@ struct ListDetailsView: View {
                 )
                 .padding(.bottom, 24)
                 
+                // resume here
+                if !groceryList.items.isEmpty {
+                    List(groceryList.items) { item in
+                       GroceryItemComponent(item: item)
+                    }
+                }
+                
                 Spacer()
             }
             .padding()
