@@ -29,9 +29,39 @@ struct AddItemComponent: View {
                         }
                     
                     Text("Price")
+                    TextField("$00", text: $name)
+                        .padding(.vertical, 14)
+                        .padding(.horizontal, 16)
+                        .background{
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(.white)
+                        }
+                    
+                    HStack(alignment: .center){
+                        Button{
+                            
+                        }label: {
+                            Text("Add Item")
+                            // background color should be Color.gray when disabled,
+                            // should be Color.budgetBlue when enabled
+                            // foreground text should be Color.itemAmountGray when disabled
+                            // should be Color.white when enabled
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background{
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color.blue)
+                                    
+                                }
+                        }
+                    }
+                    .padding(.top, 40)
+                    .frame(maxWidth: .infinity)
+                    
                     Spacer()
                 }
                 
+                .padding()
             }
             .navigationTitle("Add item")
         }
