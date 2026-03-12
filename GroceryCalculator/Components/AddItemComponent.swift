@@ -39,7 +39,7 @@ struct AddItemComponent: View {
                     
                     Text("Price")
                     
-                    TextField("$0.00", value: $price, format: .currency(code: "USD"))
+                    TextField("0.00", value: $price, format: .currency(code: Locale.current.currency?.identifier ?? "USD"))
                         .keyboardType(.decimalPad)
                         .padding(.vertical, 14)
                         .padding(.horizontal, 16)
@@ -58,7 +58,7 @@ struct AddItemComponent: View {
                                 .frame(maxWidth: .infinity)
                                 .background {
                                     RoundedRectangle(cornerRadius: 10)
-                                        .fill(isFormValid ? Color.budgetBlue : Color.gray)
+                                        .fill(isFormValid ? Color.budgetBlue : Color.buttonStrokeGray)
                                 }
                         }
                         .disabled(!isFormValid)
@@ -71,7 +71,6 @@ struct AddItemComponent: View {
                 .padding()
             }
             .navigationTitle("Add item")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
