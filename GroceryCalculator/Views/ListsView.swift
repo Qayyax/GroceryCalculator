@@ -26,7 +26,7 @@ struct ListsView: View {
                     if !listStore.lists.isEmpty {
                         List(listStore.lists) { list in
                             NavigationLink(destination: ListDetailsView(groceryList: list)) {
-                                GroceryListView(title: list.title, date: list.dateCreated)
+                                GroceryListView(title: list.title, date: list.dateModified)
                             }
                             // TODO:
                             // - Working on the next page
