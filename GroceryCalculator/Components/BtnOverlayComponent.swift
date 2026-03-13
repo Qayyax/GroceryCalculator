@@ -13,16 +13,17 @@ struct BtnOverlayComponent: View {
         self.imageName = imageName
     }
     var body: some View {
-        ZStack {
+        ZStack(alignment: .center) {
             Circle()
                 .fill(.accent)
                 .frame(width: 72, height: 72)
             
-            Image(systemName: "plus")
+            Image(systemName: imageName)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: 24, height: 24)
                 .bold()
+                .foregroundStyle(.white)
         }
     }
 }

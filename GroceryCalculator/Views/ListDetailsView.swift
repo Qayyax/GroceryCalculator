@@ -34,6 +34,23 @@ struct ListDetailsView: View {
             .padding()
             // might put it here or as over lay
             // the two buttons
+            GeometryReader{ geometry in
+                VStack(spacing: 10) {
+                    Button {
+                        
+                    } label: {
+                        BtnOverlayComponent(imageName: "list.bullet.clipboard")
+                    }
+                    Button {
+                        
+                    } label: {
+                        BtnOverlayComponent(imageName: "plus")
+                    }
+                }
+                .position(x: geometry.size.width + 155, y: geometry.size.height + 300)
+
+            }
+            .frame(width: 0, height: 0)
         }
         .navigationTitle(groceryList.title)
         // navigationActionButton
