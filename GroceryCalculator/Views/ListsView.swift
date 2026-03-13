@@ -25,12 +25,9 @@ struct ListsView: View {
                     // list of items goes here
                     if !listStore.lists.isEmpty {
                         List(listStore.lists) { list in
-                            NavigationLink(destination: ListDetailsView(groceryList: list)) {
+                            NavigationLink(destination: ListDetailsView(groceryListID: list.id)) {
                                 GroceryListView(title: list.title, date: list.dateModified)
                             }
-                            // TODO:
-                            // - Working on the next page
-                            //  - List Items Page View
                         }
                     }
                     Spacer()

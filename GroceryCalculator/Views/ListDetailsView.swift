@@ -8,27 +8,36 @@
 import SwiftUI
 
 struct ListDetailsView: View {
-    let groceryList: GroceryList
+    let groceryListID: GroceryList.ID
     
     @State private var showingAddItem = false
     @Environment(ListsStore.self) private var listStore
     
+    // Computed property to get the current list from the store
+    private var groceryList: GroceryList? {
+        listStore.lists.first(where: { $0.id == groceryListID })
+    }
 
     var body: some View {
         ZStack {
             Color.primaryBg.ignoresSafeArea()
             VStack {
-                BudgetCard(
-                    budget: groceryList.budget,
-                    remaining: groceryList.remaining,
-                    spent: groceryList.amountSpent,
-                )
-                .padding(.bottom, 24)
-                
-                if !groceryList.items.isEmpty {
-                    List(groceryList.items) { item in
-                       GroceryItemComponent(item: item)
+                if let list = groceryList {
+                    BudgetCard(
+                        budget: list.budget,
+                        remaining: list.remaining,
+                        spent: list.amountSpent,
+                    )
+                    .padding(.bottom, 24)
+                    
+                    if !list.items.isEmpty {
+                        List(list.items) { item in
+                           GroceryItemComponent(item: item)
+                        }
                     }
+                } else {
+                    Text("List not found")
+                        .foregroundStyle(.secondary)
                 }
                 
                 Spacer()
@@ -54,11 +63,11 @@ struct ListDetailsView: View {
             }
             .frame(width: 0, height: 0)
         }
-        .navigationTitle(groceryList.title)
+        .navigationTitle(groceryList?.title ?? "List")
         .sheet(isPresented: $showingAddItem) {
             AddItemComponent { item in
                 listStore.addItem(
-                    to: groceryList.id,
+                    to: groceryListID,
                     name: item.name,
                     unitPrice: item.unitPrice,
                     quantity: item.quantity
@@ -69,6 +78,10 @@ struct ListDetailsView: View {
     }
 }
 #Preview {
-    ListDetailsView(groceryList: GroceryList(id: UUID(), title: "Fish", budget: 200.34))
-        .environment(ListsStore())
+    let store = ListsStore()
+    let sampleList = GroceryList(id: UUID(), title: "Fish", budget: 200.34)
+    store.lists.append(sampleList)
+    
+    return ListDetailsView(groceryListID: sampleList.id)
+        .environment(store)
 }
