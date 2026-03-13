@@ -24,10 +24,30 @@ struct ListsView: View {
                     
                     // list of items goes here
                     if !listStore.lists.isEmpty {
-                        List(listStore.lists) { list in
-                            NavigationLink(destination: ListDetailsView(groceryListID: list.id)) {
-                                GroceryListView(title: list.title, date: list.dateModified)
+                        List {
+                            ForEach(listStore.lists) { list in
+                                NavigationLink(destination: ListDetailsView(groceryListID: list.id)) {
+                                    GroceryListView(title: list.title, date: list.dateModified)
+                                }
                             }
+                            .onDelete { indexSet in
+                                listStore.deleteLists(at: indexSet)
+                            }
+                        }
+                    } else {
+                        VStack(spacing: 16) {
+                            Spacer()
+                            Image(systemName: "list.bullet.clipboard")
+                                .font(.system(size: 60))
+                                .foregroundStyle(.secondary)
+                            Text("No Lists Yet")
+                                .font(.title2.bold())
+                            Text("Tap the + button to create your first grocery list")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 40)
+                            Spacer()
                         }
                     }
                     Spacer()
@@ -47,9 +67,7 @@ struct ListsView: View {
         }
         .sheet(isPresented: $isPresentingNewList) {
             NewList { title, budget in
-                // Convert Double? from NewList to Decimal expected by ListsStore
-                let decimalBudget = Decimal(budget ?? 0)
-                listStore.addList(title: title, budget: decimalBudget)
+                listStore.addList(title: title, budget: Decimal(budget))
             }
         }
     }

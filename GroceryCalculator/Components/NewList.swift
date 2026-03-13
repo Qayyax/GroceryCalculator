@@ -8,14 +8,24 @@
 import SwiftUI
 
 struct NewList: View {
-    var onSave: (String, Double?) -> Void = { _, _ in }
+    var onSave: (String, Double) -> Void = { _, _ in }
     
     @State private var title: String = ""
-    @State private var budget: Double? = nil
+    @State private var budget: String = ""
     @FocusState private var focusedField: Field?
     @Environment(\.dismiss) private var dismiss
     
     private enum Field: Hashable { case title, budget }
+    
+    private var budgetValue: Double? {
+        Double(budget)
+    }
+    
+    private var isFormValid: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        budgetValue != nil &&
+        (budgetValue ?? 0) > 0
+    }
     
     var body: some View {
         NavigationStack {
@@ -28,15 +38,15 @@ struct NewList: View {
                 }
                 
                 Section("Budget") {
-                    TextField("$300.00", value: $budget, format: .currency(code: Locale.current.currency?.identifier ?? "USD"))
+                    TextField("300.00", text: $budget)
                         .keyboardType(.decimalPad)
                         .focused($focusedField, equals: .budget)
                 }
                 
-                if let budget {
+                if let budgetValue {
                     Section("Summary") {
                         LabeledContent("Title", value: title.isEmpty ? "-" : title)
-                        LabeledContent("Budget", value: budget.formatted(.currency(code: Locale.current.currency?.identifier ?? "USD")))
+                        LabeledContent("Budget", value: budgetValue.formatted(.currency(code: Locale.current.currency?.identifier ?? "USD")))
                     }
                 }
             }
@@ -44,10 +54,12 @@ struct NewList: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") {
-                        onSave(title, budget)
-                        dismiss()
+                        if let budgetValue {
+                            onSave(title, budgetValue)
+                            dismiss()
+                        }
                     }
-                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(!isFormValid)
                 }
             }
         }

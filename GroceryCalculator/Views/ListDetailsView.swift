@@ -19,49 +19,19 @@ struct ListDetailsView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color.primaryBg.ignoresSafeArea()
-            VStack {
-                if let list = groceryList {
-                    BudgetCard(
-                        budget: list.budget,
-                        remaining: list.remaining,
-                        spent: list.amountSpent,
-                    )
-                    .padding(.bottom, 24)
-                    
-                    if !list.items.isEmpty {
-                        List(list.items) { item in
-                           GroceryItemComponent(item: item)
-                        }
-                    }
-                } else {
-                    Text("List not found")
-                        .foregroundStyle(.secondary)
-                }
-                
-                Spacer()
+        Group {
+            if let list = groceryList {
+                listContent(for: list)
+            } else {
+                ContentUnavailableView(
+                    "List Not Found",
+                    systemImage: "list.bullet.clipboard",
+                    description: Text("This grocery list may have been deleted.")
+                )
             }
-            .padding()
-            GeometryReader{ geometry in
-                VStack(spacing: 10) {
-                    Button {
-                        
-                    } label: {
-                        BtnOverlayComponent(imageName: "list.bullet.clipboard")
-                    }
-                    Button {
-                        showingAddItem = true
-                    } label: {
-                        BtnOverlayComponent(imageName: "plus")
-                    }
-                }
-                .position(x: geometry.size.width + 155, y: geometry.size.height + 250)
-
-            }
-            .frame(width: 0, height: 0)
         }
-        .navigationTitle(groceryList?.title ?? "List")
+        .background(Color.primaryBg.ignoresSafeArea())
+        .navigationTitle(groceryList?.title ?? "Grocery List")
         .sheet(isPresented: $showingAddItem) {
             AddItemComponent { item in
                 listStore.addItem(
@@ -72,7 +42,76 @@ struct ListDetailsView: View {
                 )
             }
         }
-        // navigationActionButton
+        .overlay(alignment: .bottomTrailing) {
+            floatingButtons
+        }
+    }
+    
+    @ViewBuilder
+    private func listContent(for list: GroceryList) -> some View {
+        VStack(spacing: 0) {
+            BudgetCard(
+                budget: list.budget,
+                remaining: list.remaining,
+                spent: list.amountSpent
+            )
+            .padding(.horizontal)
+            .padding(.top)
+            .padding(.bottom, 16)
+            
+            if list.items.isEmpty {
+                emptyStateView
+            } else {
+                List {
+                    ForEach(list.items) { item in
+                        GroceryItemComponent(item: item) { newQuantity in
+                            listStore.updateItem(
+                                in: groceryListID,
+                                itemID: item.id,
+                                quantity: newQuantity
+                            )
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                    }
+                    .onDelete { indexSet in
+                        listStore.removeItems(from: groceryListID, at: indexSet)
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+            }
+        }
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "cart")
+                .font(.system(size: 60))
+                .foregroundStyle(.secondary)
+            Text("No Items Yet")
+                .font(.title2.bold())
+            Text("Tap the + button to add your first item")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Spacer()
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var floatingButtons: some View {
+        VStack(spacing: 12) {
+            Button {
+                showingAddItem = true
+            } label: {
+                BtnOverlayComponent(imageName: "plus")
+            }
+        }
+        .padding(.trailing, 20)
+        .padding(.bottom, 20)
     }
 }
 #Preview {
