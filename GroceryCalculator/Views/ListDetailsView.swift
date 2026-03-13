@@ -32,6 +32,8 @@ struct ListDetailsView: View {
                 Spacer()
             }
             .padding()
+            // might put it here or as over lay
+            // the two buttons
         }
         .navigationTitle(groceryList.title)
         // navigationActionButton
