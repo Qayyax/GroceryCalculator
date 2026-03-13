@@ -9,11 +9,12 @@ import SwiftUI
 
 struct AddItemComponent: View {
     let listID: GroceryList.ID
-    let store: ListsStore
+    
+    @Environment(ListsStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
     
     @State private var name: String = ""
     @State private var price: Decimal = 0
-    @Environment(\.dismiss) private var dismiss
     
     private var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -96,5 +97,6 @@ struct AddItemComponent: View {
         GroceryList(title: "Weekly Groceries", budget: 150.00)
     ])
     
-    return AddItemComponent(listID: store.lists[0].id, store: store)
+    return AddItemComponent(listID: store.lists[0].id)
+        .environment(store)
 }
