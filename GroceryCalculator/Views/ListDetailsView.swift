@@ -10,13 +10,9 @@ import SwiftUI
 struct ListDetailsView: View {
     let groceryList: GroceryList
     
-//    @Environment(ListsStore.self) private var store
     @State private var showingAddItem = false
+    @Environment(ListsStore.self) private var listStore
     
-    // Get the latest version of the list from the store
-//    private var currentList: GroceryList {
-//        store.lists.first(where: { $0.id == groceryList.id }) ?? groceryList
-//    }
 
     var body: some View {
         ZStack {
@@ -60,11 +56,19 @@ struct ListDetailsView: View {
         }
         .navigationTitle(groceryList.title)
         .sheet(isPresented: $showingAddItem) {
-            AddItemComponent(listID: groceryList.id)
+            AddItemComponent { item in
+                listStore.addItem(
+                    to: groceryList.id,
+                    name: item.name,
+                    unitPrice: item.unitPrice,
+                    quantity: item.quantity
+                )
+            }
         }
         // navigationActionButton
     }
 }
 #Preview {
     ListDetailsView(groceryList: GroceryList(id: UUID(), title: "Fish", budget: 200.34))
+        .environment(ListsStore())
 }
