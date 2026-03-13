@@ -10,7 +10,6 @@ import SwiftUI
 struct AddItemComponent: View {
     let listID: GroceryList.ID
     
-    @Environment(ListsStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     
     @State private var name: String = ""
