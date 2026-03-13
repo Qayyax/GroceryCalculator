@@ -43,8 +43,6 @@ struct ListDetailsView: View {
                 Spacer()
             }
             .padding()
-            // might put it here or as over lay
-            // the two buttons
             GeometryReader{ geometry in
                 VStack(spacing: 10) {
                     Button {
