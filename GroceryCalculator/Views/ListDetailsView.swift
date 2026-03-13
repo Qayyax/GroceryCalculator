@@ -10,29 +10,29 @@ import SwiftUI
 struct ListDetailsView: View {
     let groceryList: GroceryList
     
-    @Environment(ListsStore.self) private var store
+//    @Environment(ListsStore.self) private var store
     @State private var showingAddItem = false
     
     // Get the latest version of the list from the store
-    private var currentList: GroceryList {
-        store.lists.first(where: { $0.id == groceryList.id }) ?? groceryList
-    }
+//    private var currentList: GroceryList {
+//        store.lists.first(where: { $0.id == groceryList.id }) ?? groceryList
+//    }
 
     var body: some View {
         ZStack {
             Color.primaryBg.ignoresSafeArea()
             VStack {
                 BudgetCard(
-                    budget: currentList.budget,
-                    remaining: currentList.remaining,
-                    spent: currentList.amountSpent,
+                    budget: groceryList.budget,
+                    remaining: groceryList.remaining,
+                    spent: groceryList.amountSpent,
                 )
                 .padding(.bottom, 24)
                 
                 // resume here
                 // button to add new items to list, so that they can show up here
-                if !currentList.items.isEmpty {
-                    List(currentList.items) { item in
+                if !groceryList.items.isEmpty {
+                    List(groceryList.items) { item in
                        GroceryItemComponent(item: item)
                     }
                 }
@@ -60,7 +60,7 @@ struct ListDetailsView: View {
             }
             .frame(width: 0, height: 0)
         }
-        .navigationTitle(currentList.title)
+        .navigationTitle(groceryList.title)
         .sheet(isPresented: $showingAddItem) {
             AddItemComponent(listID: groceryList.id)
         }
@@ -69,5 +69,4 @@ struct ListDetailsView: View {
 }
 #Preview {
     ListDetailsView(groceryList: GroceryList(id: UUID(), title: "Fish", budget: 200.34))
-        .environment(ListsStore())
 }
