@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct AddItemComponent: View {
-    let listID: GroceryList.ID
+    let onAddItem: (GroceryItem) -> Void
     
     @Environment(\.dismiss) private var dismiss
     
@@ -86,16 +86,14 @@ struct AddItemComponent: View {
     
     private func addItem() {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
-        store.addItem(to: listID, name: trimmedName, unitPrice: price, quantity: 1)
+        let newItem = GroceryItem(name: trimmedName, unitPrice: price, quantity: 1)
+        onAddItem(newItem)
         dismiss()
     }
 }
 
 #Preview {
-    @Previewable @State var store = ListsStore(lists: [
-        GroceryList(title: "Weekly Groceries", budget: 150.00)
-    ])
-    
-    return AddItemComponent(listID: store.lists[0].id)
-        .environment(store)
+    AddItemComponent { item in
+        print("Added item: \(item.name) - \(item.unitPrice)")
+    }
 }
