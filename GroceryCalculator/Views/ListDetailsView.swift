@@ -71,14 +71,11 @@ struct ListDetailsView: View {
                                 quantity: newQuantity
                             )
                         }
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
                     }
                     .onDelete { indexSet in
                         listStore.removeItems(from: groceryListID, at: indexSet)
                     }
                 }
-                .listStyle(.plain)
                 .scrollContentBackground(.hidden)
             }
         }
