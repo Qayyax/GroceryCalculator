@@ -11,6 +11,7 @@ struct ListDetailsView: View {
     let groceryListID: GroceryList.ID
     
     @State private var showingAddItem = false
+    @State private var showingNotes = false
     @Environment(ListsStore.self) private var listStore
     
     // Computed property to get the current list from the store
@@ -41,6 +42,9 @@ struct ListDetailsView: View {
                     quantity: item.quantity
                 )
             }
+        }
+        .sheet(isPresented: $showingNotes) {
+            NotesPerListView(listID: groceryListID)
         }
         .overlay(alignment: .bottomTrailing) {
             floatingButtons
@@ -104,6 +108,11 @@ struct ListDetailsView: View {
     
     private var floatingButtons: some View {
         VStack(spacing: 12) {
+            Button {
+                showingNotes = true
+            } label: {
+                BtnOverlayComponent(imageName: "note.text")
+            }
             Button {
                 showingAddItem = true
             } label: {

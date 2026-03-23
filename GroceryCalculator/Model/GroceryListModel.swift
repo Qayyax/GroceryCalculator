@@ -33,6 +33,7 @@ public struct GroceryList: Identifiable, Hashable, Codable {
     public var dateModified: Date
     public var budget: Decimal
     public var items: [GroceryItem]
+    public var notesRTFData: Data?
 
     public init(
         id: UUID = UUID(),
@@ -40,7 +41,8 @@ public struct GroceryList: Identifiable, Hashable, Codable {
         dateCreated: Date = Date(),
         dateModified: Date = Date(),
         budget: Decimal,
-        items: [GroceryItem] = []
+        items: [GroceryItem] = [],
+        notesRTFData: Data? = nil
     ) {
         self.id = id
         self.title = title
@@ -48,6 +50,7 @@ public struct GroceryList: Identifiable, Hashable, Codable {
         self.dateModified = dateModified
         self.budget = budget
         self.items = items
+        self.notesRTFData = notesRTFData
     }
 
     // Derived value to avoid drift; compute from items
@@ -98,6 +101,13 @@ public final class ListsStore {
     public func removeItems(from listID: GroceryList.ID, at offsets: IndexSet) {
         guard let idx = lists.firstIndex(where: { $0.id == listID }) else { return }
         lists[idx].items.remove(atOffsets: offsets)
+        lists[idx].dateModified = Date()
+    }
+
+    @MainActor
+    public func updateNotes(for listID: GroceryList.ID, rtfData: Data?) {
+        guard let idx = lists.firstIndex(where: { $0.id == listID }) else { return }
+        lists[idx].notesRTFData = rtfData
         lists[idx].dateModified = Date()
     }
 
