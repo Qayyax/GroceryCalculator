@@ -11,14 +11,6 @@ struct GroceryItemComponent: View {
     let item: GroceryItem
     let onQuantityChange: (Int) -> Void
     
-    @State private var itemCount: Int
-    
-    init(item: GroceryItem, onQuantityChange: @escaping (Int) -> Void = { _ in }) {
-        self.item = item
-        self.onQuantityChange = onQuantityChange
-        _itemCount = State(initialValue: item.quantity)
-    }
-    
     private func formattedAmount(_ value: Decimal) -> String {
         let number = NSDecimalNumber(decimal: value)
         let formatter = NumberFormatter()
@@ -27,7 +19,7 @@ struct GroceryItemComponent: View {
     }
     
     private var currentTotal: Decimal {
-        item.unitPrice * Decimal(itemCount)
+        item.unitPrice * Decimal(item.quantity)
     }
     
     var body: some View {
@@ -45,10 +37,22 @@ struct GroceryItemComponent: View {
             }
             .padding(.bottom, 14)
             HStack {
-                CustomStepper(value: $itemCount, range: 1...1000)
-                    .onChange(of: itemCount) { _, newValue in
-                        onQuantityChange(newValue)
+                StepperView(
+                    value: item.quantity,
+                    range: 1...1000,
+                    onIncrement: {
+                        let newValue = item.quantity + 1
+                        if newValue <= 1000 {
+                            onQuantityChange(newValue)
+                        }
+                    },
+                    onDecrement: {
+                        let newValue = item.quantity - 1
+                        if newValue >= 1 {
+                            onQuantityChange(newValue)
+                        }
                     }
+                )
                 Spacer()
             }
         
@@ -62,7 +66,58 @@ struct GroceryItemComponent: View {
             name: "Apples",
             unitPrice: 2.99,
             quantity: 3
-        )
+        ),
+        onQuantityChange: { newQuantity in
+            print("Quantity changed to: \(newQuantity)")
+        }
     )
     .padding()
 }
+// MARK: - StepperView (Non-Binding Version)
+private struct StepperView: View {
+    let value: Int
+    let range: ClosedRange<Int>
+    let onIncrement: () -> Void
+    let onDecrement: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            Button {
+                onDecrement()
+            } label: {
+                Text("-")
+                    .bold()
+                    .foregroundStyle(.itemAmountGray)
+                    .frame(width: 40, height: 40)
+            }
+            .background {
+                UnevenRoundedRectangle(topLeadingRadius: 10, bottomLeadingRadius: 10, bottomTrailingRadius: 0, topTrailingRadius: 0)
+                    .stroke(.buttonStrokeGray, lineWidth: 0.5)
+            }
+            .disabled(value <= range.lowerBound)
+            
+            Text("\(value)")
+                .foregroundStyle(.itemAmountGray)
+                .frame(width: 60, height: 40)
+                .background{
+                    Rectangle()
+                        .stroke(.buttonStrokeGray, lineWidth: 0.5)
+                }
+
+            Button {
+                onIncrement()
+            } label: {
+                Text("+")
+                    .bold()
+                    .foregroundStyle(.itemAmountGray)
+                    .frame(width: 40, height: 40)
+            }
+            .background {
+                UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 0, bottomTrailingRadius: 10, topTrailingRadius: 10)
+                    .stroke(.buttonStrokeGray, lineWidth: 0.5)
+            }
+            .disabled(value >= range.upperBound)
+        }
+    }
+}
+
