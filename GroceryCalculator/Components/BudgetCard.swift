@@ -45,7 +45,7 @@ struct BudgetCard: View {
                     Text("Remaining Funds")
                     Text(formattedAmount(remaining))
                         .font(.title2.bold())
-                        .foregroundStyle(.remainingGreen)
+                        .foregroundStyle(remaining < 0 ? .red : .remainingGreen)
                 }
             }
             .padding(.bottom, 45)
@@ -84,10 +84,18 @@ struct BudgetCard: View {
     }
 }
 
-#Preview {
+#Preview("Positive Balance") {
     ZStack {
         Color.primaryBg
         BudgetCard(budget: 200, remaining: 150, spent: 50, isPresented: true)
             .padding()
     }
 }
+#Preview("Over Budget") {
+    ZStack {
+        Color.primaryBg
+        BudgetCard(budget: 200, remaining: -25, spent: 225, isPresented: true)
+            .padding()
+    }
+}
+
