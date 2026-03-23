@@ -71,6 +71,9 @@ struct ListDetailsView: View {
                                 quantity: newQuantity
                             )
                         }
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                        .listRowSeparator(.hidden)
+                        .buttonStyle(.plain)
                     }
                     .onDelete { indexSet in
                         listStore.removeItems(from: groceryListID, at: indexSet)
