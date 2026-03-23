@@ -15,6 +15,7 @@ struct GroceryCalculatorApp: App {
         WindowGroup {
             ContentView()
                 .environment(listStore)
+                .preferredColorScheme(.light) // Force light mode at app level
         }
     }
 }
