@@ -13,11 +13,29 @@ struct AddItemComponent: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var name: String = ""
-    @State private var price: Decimal = 0
+    @State private var priceText: String = ""
+    
+    private var priceValue: Decimal? {
+        // Try to parse the price from the text
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        
+        // Remove currency symbols and whitespace
+        let cleaned = priceText.trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: "$", with: "")
+            .replacingOccurrences(of: ",", with: "")
+        
+        if cleaned.isEmpty { return nil }
+        
+        if let number = formatter.number(from: cleaned) {
+            return Decimal(string: number.stringValue)
+        }
+        return nil
+    }
     
     private var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
-        price > 0
+        (priceValue ?? 0) > 0
     }
     
     var body: some View {
@@ -39,7 +57,7 @@ struct AddItemComponent: View {
                     
                     Text("Price")
                     
-                    TextField("0.00", value: $price, format: .currency(code: Locale.current.currency?.identifier ?? "USD"))
+                    TextField("0.00", text: $priceText)
                         .keyboardType(.decimalPad)
                         .padding(.vertical, 14)
                         .padding(.horizontal, 16)
@@ -85,8 +103,9 @@ struct AddItemComponent: View {
     }
     
     private func addItem() {
+        guard let priceValue = priceValue else { return }
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
-        let newItem = GroceryItem(name: trimmedName, unitPrice: price, quantity: 1)
+        let newItem = GroceryItem(name: trimmedName, unitPrice: priceValue, quantity: 1)
         onAddItem(newItem)
         dismiss()
     }
