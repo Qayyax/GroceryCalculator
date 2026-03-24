@@ -29,6 +29,14 @@ struct RichTextEditor: UIViewRepresentable {
             .foregroundColor: UIColor.label
         ]
 
+        let tapGesture = UITapGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handleTap(_:))
+        )
+        tapGesture.cancelsTouchesInView = false
+        tapGesture.delegate = context.coordinator
+        textView.addGestureRecognizer(tapGesture)
+
         textView.inputAccessoryView = makeFormattingToolbar(coordinator: context.coordinator)
         return textView
     }
@@ -50,7 +58,10 @@ struct RichTextEditor: UIViewRepresentable {
         italicButton.setTitleTextAttributes([.font: UIFont.italicSystemFont(ofSize: 17)], for: .normal)
 
         let underlineButton = UIBarButtonItem(title: "U", style: .plain, target: coordinator, action: #selector(Coordinator.toggleUnderline))
-        underlineButton.setTitleTextAttributes([.font: UIFont.systemFont(ofSize: 17), .underlineStyle: NSUnderlineStyle.single.rawValue], for: .normal)
+        underlineButton.setTitleTextAttributes(
+            [.font: UIFont.systemFont(ofSize: 17), .underlineStyle: NSUnderlineStyle.single.rawValue],
+            for: .normal
+        )
 
         let divider = UIBarButtonItem(barButtonSystemItem: .fixedSpace, target: nil, action: nil)
         divider.width = 16
@@ -58,38 +69,36 @@ struct RichTextEditor: UIViewRepresentable {
         // — Lists —
         let bulletButton = UIBarButtonItem(
             image: UIImage(systemName: "list.bullet"),
-            style: .plain,
-            target: coordinator,
+            style: .plain, target: coordinator,
             action: #selector(Coordinator.toggleBulletList)
         )
-
         let numberedButton = UIBarButtonItem(
             image: UIImage(systemName: "list.number"),
-            style: .plain,
-            target: coordinator,
+            style: .plain, target: coordinator,
             action: #selector(Coordinator.toggleNumberedList)
         )
-
-        let divider2 = UIBarButtonItem(barButtonSystemItem: .fixedSpace, target: nil, action: nil)
-        divider2.width = 16
-
-        // — Table —
-        let tableButton = UIBarButtonItem(
-            image: UIImage(systemName: "tablecells"),
-            style: .plain,
-            target: coordinator,
-            action: #selector(Coordinator.insertTableTapped)
+        let checklistButton = UIBarButtonItem(
+            image: UIImage(systemName: "checklist"),
+            style: .plain, target: coordinator,
+            action: #selector(Coordinator.toggleChecklist)
         )
 
         let flexSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
 
-        toolbar.items = [boldButton, italicButton, underlineButton, divider, bulletButton, numberedButton, divider2, tableButton, flexSpace]
+        toolbar.items = [boldButton, italicButton, underlineButton, divider, bulletButton, numberedButton, checklistButton, flexSpace]
         return toolbar
     }
 
     // MARK: - Coordinator
 
-    class Coordinator: NSObject, UITextViewDelegate {
+    class Coordinator: NSObject, UITextViewDelegate, UIGestureRecognizerDelegate {
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
+        ) -> Bool {
+            return true
+        }
         var parent: RichTextEditor
         weak var textView: UITextView?
 
@@ -196,7 +205,7 @@ struct RichTextEditor: UIViewRepresentable {
             let paragraphRange = (textView.text as NSString).paragraphRange(for: selectedRange)
             let mutable = NSMutableAttributedString(attributedString: textView.attributedText)
 
-            // Check if ALL paragraphs in the range already have this exact list type
+            // Check if ALL paragraphs in range already have this exact list type
             var allHaveList = true
             mutable.enumerateAttribute(.paragraphStyle, in: paragraphRange) { value, _, stop in
                 guard let style = value as? NSParagraphStyle,
@@ -212,7 +221,6 @@ struct RichTextEditor: UIViewRepresentable {
             list.startingItemNumber = 1
 
             mutable.enumerateAttribute(.paragraphStyle, in: paragraphRange) { value, subRange, _ in
-                // Preserve existing paragraph properties (alignment, spacing, etc.)
                 let style = (value as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle
                     ?? NSMutableParagraphStyle()
                 if allHaveList {
@@ -232,93 +240,129 @@ struct RichTextEditor: UIViewRepresentable {
             parent.attributedText = textView.attributedText
         }
 
-        // MARK: Tables
+        // MARK: Checklist
 
-        @objc func insertTableTapped() {
-            guard let textView, let vc = topmostViewController() else { return }
+        private static let unchecked = "☐"
+        private static let checked   = "☑"
 
-            let alert = UIAlertController(title: "Insert Table", message: nil, preferredStyle: .alert)
-            alert.addTextField { tf in
-                tf.placeholder = "Rows"
-                tf.text = "2"
-                tf.keyboardType = .numberPad
-            }
-            alert.addTextField { tf in
-                tf.placeholder = "Columns"
-                tf.text = "2"
-                tf.keyboardType = .numberPad
-            }
-            alert.addAction(UIAlertAction(title: "Insert", style: .default) { [weak self] _ in
-                let rows = max(1, min(Int(alert.textFields?[0].text ?? "") ?? 2, 10))
-                let cols = max(1, min(Int(alert.textFields?[1].text ?? "") ?? 2, 6))
-                self?.insertTable(rows: rows, columns: cols, in: textView)
-            })
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            vc.present(alert, animated: true)
-        }
+        @objc func toggleChecklist() {
+            guard let textView else { return }
+            let selectedRange = textView.selectedRange
+            let nsText = textView.text as NSString
+            let fullRange = nsText.paragraphRange(for: selectedRange)
 
-        /// Inserts a Unicode box-drawing table rendered in a monospace font.
-        /// NSTextTable/NSTextTableBlock are macOS-only and not available on iOS.
-        private func insertTable(rows: Int, columns: Int, in textView: UITextView) {
-            let bodySize = UIFont.preferredFont(forTextStyle: .body).pointSize
-            let monoFont = UIFont.monospacedSystemFont(ofSize: bodySize, weight: .regular)
-
-            // Calculate how many characters fit per column based on the text view width
-            let insets = textView.textContainerInset
-            let padding = textView.textContainer.lineFragmentPadding
-            let viewWidth = textView.bounds.width - insets.left - insets.right - 2 * padding
-            let charWidth = ("─" as NSString).size(withAttributes: [.font: monoFont]).width
-            let totalAvailableChars = charWidth > 0 ? Int(viewWidth / charWidth) : (columns * 12)
-            // Subtract border chars (one | per column plus the outer |)
-            let cellWidth = max(4, (totalAvailableChars - (columns + 1)) / columns)
-
-            func hLine(left: String, mid: String, right: String, fill: String) -> String {
-                let segment = String(repeating: fill, count: cellWidth)
-                return left + (0..<columns).map { _ in segment }.joined(separator: mid) + right + "\n"
+            // Collect paragraph ranges (reverse order so insertions don't shift earlier ranges)
+            var paraRanges: [NSRange] = []
+            var pos = fullRange.location
+            while pos < fullRange.location + fullRange.length {
+                let r = nsText.paragraphRange(for: NSRange(location: pos, length: 0))
+                paraRanges.append(r)
+                pos = r.location + r.length
+                if r.length == 0 { break }
             }
 
-            var tableText = ""
-            tableText += hLine(left: "┌", mid: "┬", right: "┐", fill: "─")
-            for row in 0..<rows {
-                let cellContent = String(repeating: " ", count: cellWidth)
-                tableText += "│" + (0..<columns).map { _ in cellContent }.joined(separator: "│") + "│\n"
-                if row < rows - 1 {
-                    tableText += hLine(left: "├", mid: "┼", right: "┤", fill: "─")
+            let allHaveChecklist = paraRanges.allSatisfy { r in
+                let t = nsText.substring(with: r)
+                return t.hasPrefix(Coordinator.unchecked) || t.hasPrefix(Coordinator.checked)
+            }
+
+            let mutable = NSMutableAttributedString(attributedString: textView.attributedText)
+
+            for paraRange in paraRanges.reversed() {
+                let paraText = (mutable.string as NSString).substring(with: paraRange)
+
+                if allHaveChecklist {
+                    // Remove "☐ " or "☑ " prefix
+                    var removeLen = 0
+                    if paraText.hasPrefix(Coordinator.unchecked) || paraText.hasPrefix(Coordinator.checked) {
+                        removeLen = 1
+                        if paraText.count > 1 {
+                            let secondIdx = paraText.index(paraText.startIndex, offsetBy: 1)
+                            if String(paraText[secondIdx]) == " " { removeLen = 2 }
+                        }
+                    }
+                    if removeLen > 0 {
+                        mutable.deleteCharacters(in: NSRange(location: paraRange.location, length: removeLen))
+                    }
+                    let newParaRange = (mutable.string as NSString).paragraphRange(for: NSRange(location: paraRange.location, length: 0))
+                    mutable.enumerateAttribute(.paragraphStyle, in: newParaRange) { value, sub, _ in
+                        let style = (value as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+                        style.headIndent = 0
+                        style.firstLineHeadIndent = 0
+                        mutable.addAttribute(.paragraphStyle, value: style, range: sub)
+                    }
+                } else {
+                    // Add "☐ " prefix if not already a checklist item
+                    if !paraText.hasPrefix(Coordinator.unchecked) && !paraText.hasPrefix(Coordinator.checked) {
+                        let attrs: [NSAttributedString.Key: Any] = paraRange.length > 0
+                            ? mutable.attributes(at: paraRange.location, effectiveRange: nil)
+                            : [.font: UIFont.preferredFont(forTextStyle: .body)]
+                        mutable.insert(NSAttributedString(string: "\(Coordinator.unchecked) ", attributes: attrs), at: paraRange.location)
+                    }
+                    let newParaRange = (mutable.string as NSString).paragraphRange(for: NSRange(location: paraRange.location, length: 0))
+                    mutable.enumerateAttribute(.paragraphStyle, in: newParaRange) { value, sub, _ in
+                        let style = (value as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+                        style.headIndent = 22
+                        style.firstLineHeadIndent = 0
+                        mutable.addAttribute(.paragraphStyle, value: style, range: sub)
+                    }
                 }
             }
-            tableText += hLine(left: "└", mid: "┴", right: "┘", fill: "─")
 
-            let baseFont = (textView.typingAttributes[.font] as? UIFont) ?? UIFont.preferredFont(forTextStyle: .body)
-            let tableAttr = NSAttributedString(string: tableText, attributes: [.font: monoFont])
-
-            let insertLocation = textView.selectedRange.location
-            let fullText = textView.text as NSString
-            let needsLeadingBreak = insertLocation > 0
-                && fullText.character(at: insertLocation - 1) != unichar(("\n" as UnicodeScalar).value)
-
-            let toInsert = NSMutableAttributedString()
-            if needsLeadingBreak {
-                toInsert.append(NSAttributedString(string: "\n", attributes: [.font: baseFont]))
-            }
-            toInsert.append(tableAttr)
-
-            let existing = NSMutableAttributedString(attributedString: textView.attributedText)
-            existing.insert(toInsert, at: insertLocation)
-            textView.attributedText = existing
-
-            // Place cursor at the first cell's content (after top border row + first │)
-            // Top border length: 1(┌) + cellWidth*columns + (columns-1)(┬s) + 1(┐) + 1(\n)
-            let topRowLen = 1 + cellWidth * columns + (columns - 1) + 1 + 1
-            let firstCellPos = insertLocation + (needsLeadingBreak ? 1 : 0) + topRowLen + 1
-            textView.selectedRange = NSRange(location: min(firstCellPos, existing.length), length: 0)
+            textView.attributedText = mutable
+            textView.selectedRange = NSRange(location: min(selectedRange.location, mutable.length), length: 0)
             parent.attributedText = textView.attributedText
         }
 
-        // Walk the responder chain to find the topmost presented UIViewController
-        private func topmostViewController() -> UIViewController? {
-            guard var vc = textView?.window?.rootViewController else { return nil }
-            while let presented = vc.presentedViewController { vc = presented }
-            return vc
+        /// Tap recognizer: tapping a ☐/☑ character toggles it checked/unchecked.
+        @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+            guard let textView else { return }
+            let tapLocation = gesture.location(in: textView)
+
+            guard let tapPosition = textView.closestPosition(to: tapLocation) else { return }
+            let offset = textView.offset(from: textView.beginningOfDocument, to: tapPosition)
+            let nsText = textView.text as NSString
+
+            // Check the character at `offset` and `offset - 1` (closestPosition can land
+            // either before or after the tapped glyph depending on tap x-position)
+            for idx in [offset, offset - 1] {
+                guard idx >= 0 && idx < nsText.length else { continue }
+                let char = nsText.substring(with: NSRange(location: idx, length: 1))
+                guard char == Coordinator.unchecked || char == Coordinator.checked else { continue }
+
+                let isChecking = (char == Coordinator.unchecked)
+                let newCheckbox = isChecking ? Coordinator.checked : Coordinator.unchecked
+                let mutable = NSMutableAttributedString(attributedString: textView.attributedText)
+
+                // Swap checkbox character (preserve its attributes)
+                let checkboxAttrs = mutable.attributes(at: idx, effectiveRange: nil)
+                mutable.replaceCharacters(
+                    in: NSRange(location: idx, length: 1),
+                    with: NSAttributedString(string: newCheckbox, attributes: checkboxAttrs)
+                )
+
+                // Apply / remove strikethrough on the line content after "☐ " / "☑ "
+                let paraRange = nsText.paragraphRange(for: NSRange(location: idx, length: 0))
+                let contentStart = idx + 2 // skip checkbox + space
+                let paraEnd = paraRange.location + paraRange.length
+                let hasNewline = paraEnd > 0 && nsText.character(at: paraEnd - 1) == unichar(("\n" as UnicodeScalar).value)
+                let contentEnd = paraEnd - (hasNewline ? 1 : 0)
+
+                if contentStart < contentEnd {
+                    let contentRange = NSRange(location: contentStart, length: contentEnd - contentStart)
+                    if isChecking {
+                        mutable.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: contentRange)
+                        mutable.addAttribute(.foregroundColor, value: UIColor.secondaryLabel, range: contentRange)
+                    } else {
+                        mutable.removeAttribute(.strikethroughStyle, range: contentRange)
+                        mutable.removeAttribute(.foregroundColor, range: contentRange)
+                    }
+                }
+
+                textView.attributedText = mutable
+                parent.attributedText = textView.attributedText
+                return
+            }
         }
     }
 }
