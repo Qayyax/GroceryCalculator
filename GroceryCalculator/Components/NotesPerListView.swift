@@ -15,57 +15,50 @@ struct NotesPerListView: View {
 
     @State private var attributedText: NSAttributedString = NSAttributedString(string: "")
 
+    private var listTitle: String {
+        listStore.lists.first(where: { $0.id == listID })?.title ?? "Notes"
+    }
+
+    var body: some View {
+        NavigationStack {
+            RichTextEditor(attributedText: $attributedText, autoFocus: true)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .background(Color.primaryBg)
+                .navigationTitle(listTitle)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") { dismiss() }
+                            .fontWeight(.semibold)
+                    }
+                }
+        }
+        .onAppear {
+            attributedText = currentNotes
+        }
+        .onDisappear {
+            saveNotes()
+        }
+    }
+
     private var currentNotes: NSAttributedString {
         guard
             let list = listStore.lists.first(where: { $0.id == listID }),
-            let data = list.notesRTFData,
-            let decoded = NSAttributedString.from(rtfData: data)
+            let data = list.notesData,
+            let decoded = NSAttributedString.decoded(from: data)
         else {
             return NSAttributedString(string: "")
         }
         return decoded
     }
 
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.primaryBg
-                    .ignoresSafeArea()
-
-                RichTextEditor(attributedText: $attributedText)
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-            }
-            .navigationTitle("Notes")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Done") {
-                        saveNotes()
-                    }
-                    .fontWeight(.semibold)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .foregroundStyle(.primary)
-                    }
-                }
-            }
-        }
-        .onAppear {
-            attributedText = currentNotes
-        }
-    }
-
     private func saveNotes() {
         let isEmpty = attributedText.string
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .isEmpty
-        listStore.updateNotes(for: listID, rtfData: isEmpty ? nil : attributedText.rtfData())
-        dismiss()
+        listStore.updateNotes(for: listID, data: isEmpty ? nil : attributedText.encoded())
     }
 }
 

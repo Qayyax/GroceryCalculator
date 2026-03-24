@@ -8,37 +8,88 @@
 import SwiftUI
 import UIKit
 
-struct RichTextEditor: UIViewRepresentable {
-    @Binding var attributedText: NSAttributedString
+// MARK: - CheckboxAttachment
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+/// NSTextAttachment rendered as an SF Symbol circle.
+/// Persists `isChecked` via NSCoding for NSKeyedArchiver round-trips.
+final class CheckboxAttachment: NSTextAttachment {
+
+    var isChecked: Bool = false
+
+    // Explicit designated-init override so the convenience init can delegate here
+    override init(data contentData: Data?, ofType uti: String?) {
+        super.init(data: contentData, ofType: uti)
     }
 
+    convenience init(isChecked: Bool, font: UIFont) {
+        self.init(data: nil, ofType: nil)
+        self.isChecked = isChecked
+        refreshImage(font: font)
+    }
+
+    func refreshImage(font: UIFont) {
+        let config = UIImage.SymbolConfiguration(pointSize: font.pointSize, weight: .regular)
+        let name:  String   = isChecked ? "checkmark.circle.fill" : "circle"
+        let color: UIColor  = isChecked ? .systemGreen : .secondaryLabel
+        image = UIImage(systemName: name, withConfiguration: config)?
+            .withTintColor(color, renderingMode: .alwaysOriginal)
+    }
+
+    // Center symbol on cap-height rather than sitting on baseline
+    override func attachmentBounds(
+        for textContainer: NSTextContainer?,
+        proposedLineFragment lineFrag: CGRect,
+        glyphPosition position: CGPoint,
+        characterIndex charIndex: Int
+    ) -> CGRect {
+        guard let img = image else { return .zero }
+        let font = UIFont.preferredFont(forTextStyle: .body)
+        let y = (font.capHeight - img.size.height) / 2
+        return CGRect(x: 0, y: y, width: img.size.width, height: img.size.height)
+    }
+
+    // NSCoding — required for NSKeyedArchiver to preserve state across save/load
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        isChecked = coder.decodeBool(forKey: "isChecked")
+        refreshImage(font: UIFont.preferredFont(forTextStyle: .body))
+    }
+    override func encode(with coder: NSCoder) {
+        super.encode(with: coder)
+        coder.encode(isChecked, forKey: "isChecked")
+    }
+}
+
+// MARK: - RichTextEditor
+
+struct RichTextEditor: UIViewRepresentable {
+    @Binding var attributedText: NSAttributedString
+    var autoFocus: Bool = false
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
     func makeUIView(context: Context) -> UITextView {
-        let textView = UITextView()
-        textView.allowsEditingTextAttributes = true
-        textView.backgroundColor = .clear
-        textView.delegate = context.coordinator
-        context.coordinator.textView = textView
+        let tv = UITextView()
+        tv.allowsEditingTextAttributes = true
+        tv.backgroundColor = .clear
+        tv.delegate = context.coordinator
+        context.coordinator.textView = tv
 
-        let bodyFont = UIFont.preferredFont(forTextStyle: .body)
-        textView.font = bodyFont
-        textView.typingAttributes = [
-            .font: bodyFont,
-            .foregroundColor: UIColor.label
-        ]
+        let font = UIFont.preferredFont(forTextStyle: .body)
+        tv.font = font
+        tv.typingAttributes = [.font: font, .foregroundColor: UIColor.label]
 
-        let tapGesture = UITapGestureRecognizer(
-            target: context.coordinator,
-            action: #selector(Coordinator.handleTap(_:))
-        )
-        tapGesture.cancelsTouchesInView = false
-        tapGesture.delegate = context.coordinator
-        textView.addGestureRecognizer(tapGesture)
+        if autoFocus {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { tv.becomeFirstResponder() }
+        }
 
-        textView.inputAccessoryView = makeFormattingToolbar(coordinator: context.coordinator)
-        return textView
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
+        tap.cancelsTouchesInView = false
+        tap.delegate = context.coordinator
+        tv.addGestureRecognizer(tap)
+
+        tv.inputAccessoryView = makeToolbar(coordinator: context.coordinator)
+        return tv
     }
 
     func updateUIView(_ uiView: UITextView, context: Context) {
@@ -46,343 +97,399 @@ struct RichTextEditor: UIViewRepresentable {
         uiView.attributedText = attributedText
     }
 
-    private func makeFormattingToolbar(coordinator: Coordinator) -> UIToolbar {
-        let toolbar = UIToolbar()
-        toolbar.sizeToFit()
+    private func makeToolbar(coordinator: Coordinator) -> UIToolbar {
+        let bar = UIToolbar()
+        bar.sizeToFit()
 
-        // — Text style —
-        let boldButton = UIBarButtonItem(title: "B", style: .plain, target: coordinator, action: #selector(Coordinator.toggleBold))
-        boldButton.setTitleTextAttributes([.font: UIFont.boldSystemFont(ofSize: 17)], for: .normal)
+        let bold = barButton("B", font: .boldSystemFont(ofSize: 17),   target: coordinator, action: #selector(Coordinator.toggleBold))
+        let italic = barButton("I", font: .italicSystemFont(ofSize: 17), target: coordinator, action: #selector(Coordinator.toggleItalic))
+        let underline = barButton("U", font: .systemFont(ofSize: 17),    target: coordinator, action: #selector(Coordinator.toggleUnderline),
+                                  extraAttrs: [.underlineStyle: NSUnderlineStyle.single.rawValue])
 
-        let italicButton = UIBarButtonItem(title: "I", style: .plain, target: coordinator, action: #selector(Coordinator.toggleItalic))
-        italicButton.setTitleTextAttributes([.font: UIFont.italicSystemFont(ofSize: 17)], for: .normal)
+        let gap = UIBarButtonItem(barButtonSystemItem: .fixedSpace, target: nil, action: nil)
+        gap.width = 16
 
-        let underlineButton = UIBarButtonItem(title: "U", style: .plain, target: coordinator, action: #selector(Coordinator.toggleUnderline))
-        underlineButton.setTitleTextAttributes(
-            [.font: UIFont.systemFont(ofSize: 17), .underlineStyle: NSUnderlineStyle.single.rawValue],
-            for: .normal
-        )
+        let bullet    = imageButton("list.bullet",  target: coordinator, action: #selector(Coordinator.toggleBulletList))
+        let numbered  = imageButton("list.number",  target: coordinator, action: #selector(Coordinator.toggleNumberedList))
+        let checklist = imageButton("checklist",    target: coordinator, action: #selector(Coordinator.toggleChecklist))
+        let flex      = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
 
-        let divider = UIBarButtonItem(barButtonSystemItem: .fixedSpace, target: nil, action: nil)
-        divider.width = 16
+        bar.items = [bold, italic, underline, gap, bullet, numbered, checklist, flex]
+        return bar
+    }
 
-        // — Lists —
-        let bulletButton = UIBarButtonItem(
-            image: UIImage(systemName: "list.bullet"),
-            style: .plain, target: coordinator,
-            action: #selector(Coordinator.toggleBulletList)
-        )
-        let numberedButton = UIBarButtonItem(
-            image: UIImage(systemName: "list.number"),
-            style: .plain, target: coordinator,
-            action: #selector(Coordinator.toggleNumberedList)
-        )
-        let checklistButton = UIBarButtonItem(
-            image: UIImage(systemName: "checklist"),
-            style: .plain, target: coordinator,
-            action: #selector(Coordinator.toggleChecklist)
-        )
+    private func barButton(_ title: String, font: UIFont, target: AnyObject, action: Selector,
+                           extraAttrs: [NSAttributedString.Key: Any] = [:]) -> UIBarButtonItem {
+        let b = UIBarButtonItem(title: title, style: .plain, target: target, action: action)
+        var attrs: [NSAttributedString.Key: Any] = [.font: font]
+        attrs.merge(extraAttrs) { $1 }
+        b.setTitleTextAttributes(attrs, for: .normal)
+        return b
+    }
 
-        let flexSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-
-        toolbar.items = [boldButton, italicButton, underlineButton, divider, bulletButton, numberedButton, checklistButton, flexSpace]
-        return toolbar
+    private func imageButton(_ systemName: String, target: AnyObject, action: Selector) -> UIBarButtonItem {
+        UIBarButtonItem(image: UIImage(systemName: systemName), style: .plain, target: target, action: action)
     }
 
     // MARK: - Coordinator
 
     class Coordinator: NSObject, UITextViewDelegate, UIGestureRecognizerDelegate {
 
-        func gestureRecognizer(
-            _ gestureRecognizer: UIGestureRecognizer,
-            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
-        ) -> Bool {
-            return true
-        }
         var parent: RichTextEditor
         weak var textView: UITextView?
 
-        init(_ parent: RichTextEditor) {
-            self.parent = parent
-        }
+        init(_ parent: RichTextEditor) { self.parent = parent }
+
+        func gestureRecognizer(_ gr: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
 
         func textViewDidChange(_ textView: UITextView) {
             parent.attributedText = textView.attributedText
         }
 
+        // MARK: Enter-key handling (list continuation / exit)
+
+        func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+            // Only intercept a plain newline with no selected text
+            guard text == "\n", range.length == 0, !textView.text.isEmpty else { return true }
+
+            let nsText        = textView.text as NSString
+            let currentPara   = nsText.paragraphRange(for: range)
+            guard currentPara.length > 0,
+                  currentPara.location < textView.attributedText.length else { return true }
+
+            let font = (textView.typingAttributes[.font] as? UIFont) ?? UIFont.preferredFont(forTextStyle: .body)
+
+            // ── Checklist ──
+            if textView.attributedText.attribute(.attachment, at: currentPara.location, effectiveRange: nil) is CheckboxAttachment {
+                let paraText    = nsText.substring(with: currentPara)
+                let contentOnly = paraText
+                    .replacingOccurrences(of: "\u{FFFC}", with: "")   // object-replacement char (attachment)
+                    .replacingOccurrences(of: "\t", with: "")
+                    .trimmingCharacters(in: .newlines)
+
+                let m = NSMutableAttributedString(attributedString: textView.attributedText)
+
+                if contentOnly.isEmpty {
+                    // Empty checklist item → exit list (remove checkbox, no newline)
+                    removeCheckboxPrefix(from: currentPara.location, in: m, font: font)
+                    textView.attributedText = m
+                    textView.selectedRange  = NSRange(location: currentPara.location, length: 0)
+                } else {
+                    // Continue: insert \n + new checkbox item
+                    let indent   = checklistIndent(for: font)
+                    let toInsert = newChecklistItem(font: font, indent: indent)
+                    m.insert(NSAttributedString(string: "\n", attributes: [.font: font]), at: range.location)
+                    m.insert(toInsert, at: range.location + 1)
+                    textView.attributedText = m
+                    textView.selectedRange  = NSRange(location: range.location + 3, length: 0) // after \n + attach + tab
+                }
+
+                parent.attributedText = textView.attributedText
+                return false
+            }
+
+            // ── Bullet / Numbered list ──
+            if let style = textView.attributedText.attribute(.paragraphStyle, at: currentPara.location, effectiveRange: nil) as? NSParagraphStyle,
+               !style.textLists.isEmpty {
+
+                let paraText    = nsText.substring(with: currentPara)
+                let contentOnly = paraText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                if contentOnly.isEmpty {
+                    // Empty list item → exit list (remove list style, no newline)
+                    let m = NSMutableAttributedString(attributedString: textView.attributedText)
+                    resetListStyle(in: currentPara, on: m)
+                    textView.attributedText = m
+                    // Also clear typing attributes so the next character isn't in a list
+                    var typing = textView.typingAttributes
+                    if let s = (typing[.paragraphStyle] as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle {
+                        s.textLists = []; s.headIndent = 0; s.firstLineHeadIndent = 0
+                        typing[.paragraphStyle] = s
+                    }
+                    textView.typingAttributes = typing
+                    textView.selectedRange    = NSRange(location: range.location, length: 0)
+                    parent.attributedText     = textView.attributedText
+                    return false
+                }
+                // Non-empty: UITextView propagates paragraph style (including NSTextList) automatically
+                return true
+            }
+
+            return true
+        }
+
         // MARK: Bold / Italic / Underline
 
-        @objc func toggleBold() {
-            guard let textView else { return }
-            toggleTrait(.traitBold, in: textView)
-        }
-
-        @objc func toggleItalic() {
-            guard let textView else { return }
-            toggleTrait(.traitItalic, in: textView)
-        }
+        @objc func toggleBold()   { guard let tv = textView else { return }; toggleTrait(.traitBold,   in: tv) }
+        @objc func toggleItalic() { guard let tv = textView else { return }; toggleTrait(.traitItalic, in: tv) }
 
         @objc func toggleUnderline() {
-            guard let textView else { return }
-            let range = textView.selectedRange
-
+            guard let tv = textView else { return }
+            let range = tv.selectedRange
             if range.length > 0 {
-                let mutable = NSMutableAttributedString(attributedString: textView.attributedText)
-                var allUnderlined = true
-                mutable.enumerateAttribute(.underlineStyle, in: range) { value, _, _ in
-                    if let style = value as? Int, style != 0 { return }
-                    allUnderlined = false
+                let m = NSMutableAttributedString(attributedString: tv.attributedText)
+                var allHave = true
+                m.enumerateAttribute(.underlineStyle, in: range) { v, _, _ in
+                    if let s = v as? Int, s != 0 { return }; allHave = false
                 }
-                if allUnderlined {
-                    mutable.removeAttribute(.underlineStyle, range: range)
-                } else {
-                    mutable.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)
-                }
-                textView.attributedText = mutable
-                textView.selectedRange = range
-                parent.attributedText = textView.attributedText
+                if allHave { m.removeAttribute(.underlineStyle, range: range) }
+                else        { m.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range) }
+                tv.attributedText = m; tv.selectedRange = range; parent.attributedText = m
             } else {
-                var typing = textView.typingAttributes
-                if let style = typing[.underlineStyle] as? Int, style != 0 {
-                    typing[.underlineStyle] = 0
-                } else {
-                    typing[.underlineStyle] = NSUnderlineStyle.single.rawValue
-                }
-                textView.typingAttributes = typing
+                var t = tv.typingAttributes
+                if let s = t[.underlineStyle] as? Int, s != 0 { t[.underlineStyle] = 0 }
+                else { t[.underlineStyle] = NSUnderlineStyle.single.rawValue }
+                tv.typingAttributes = t
             }
         }
 
-        private func toggleTrait(_ trait: UIFontDescriptor.SymbolicTraits, in textView: UITextView) {
-            let range = textView.selectedRange
-
+        private func toggleTrait(_ trait: UIFontDescriptor.SymbolicTraits, in tv: UITextView) {
+            let range = tv.selectedRange
             if range.length > 0 {
-                let mutable = NSMutableAttributedString(attributedString: textView.attributedText)
-                var allHaveTrait = true
-                mutable.enumerateAttribute(.font, in: range) { value, _, _ in
-                    guard let font = value as? UIFont,
-                          font.fontDescriptor.symbolicTraits.contains(trait) else {
-                        allHaveTrait = false
-                        return
+                let m = NSMutableAttributedString(attributedString: tv.attributedText)
+                var allHave = true
+                m.enumerateAttribute(.font, in: range) { v, _, _ in
+                    guard let f = v as? UIFont, f.fontDescriptor.symbolicTraits.contains(trait) else { allHave = false; return }
+                }
+                m.enumerateAttribute(.font, in: range) { v, sub, _ in
+                    let cur = (v as? UIFont) ?? UIFont.preferredFont(forTextStyle: .body)
+                    var t = cur.fontDescriptor.symbolicTraits
+                    if allHave { t.remove(trait) } else { t.insert(trait) }
+                    if let d = cur.fontDescriptor.withSymbolicTraits(t) {
+                        m.addAttribute(.font, value: UIFont(descriptor: d, size: cur.pointSize), range: sub)
                     }
                 }
-                mutable.enumerateAttribute(.font, in: range) { value, subRange, _ in
-                    let current = (value as? UIFont) ?? UIFont.preferredFont(forTextStyle: .body)
-                    var traits = current.fontDescriptor.symbolicTraits
-                    if allHaveTrait { traits.remove(trait) } else { traits.insert(trait) }
-                    if let descriptor = current.fontDescriptor.withSymbolicTraits(traits) {
-                        mutable.addAttribute(.font, value: UIFont(descriptor: descriptor, size: current.pointSize), range: subRange)
-                    }
-                }
-                textView.attributedText = mutable
-                textView.selectedRange = range
-                parent.attributedText = textView.attributedText
+                tv.attributedText = m; tv.selectedRange = range; parent.attributedText = m
             } else {
-                var typing = textView.typingAttributes
-                let current = (typing[.font] as? UIFont) ?? UIFont.preferredFont(forTextStyle: .body)
-                var traits = current.fontDescriptor.symbolicTraits
+                var t   = tv.typingAttributes
+                let cur = (t[.font] as? UIFont) ?? UIFont.preferredFont(forTextStyle: .body)
+                var traits = cur.fontDescriptor.symbolicTraits
                 if traits.contains(trait) { traits.remove(trait) } else { traits.insert(trait) }
-                if let descriptor = current.fontDescriptor.withSymbolicTraits(traits) {
-                    typing[.font] = UIFont(descriptor: descriptor, size: current.pointSize)
-                }
-                textView.typingAttributes = typing
+                if let d = cur.fontDescriptor.withSymbolicTraits(traits) { t[.font] = UIFont(descriptor: d, size: cur.pointSize) }
+                tv.typingAttributes = t
             }
         }
 
-        // MARK: Lists
+        // MARK: Bullet / Numbered lists
 
-        @objc func toggleBulletList() {
-            guard let textView else { return }
-            toggleList(markerFormat: .disc, in: textView)
-        }
+        @objc func toggleBulletList()   { guard let tv = textView else { return }; toggleList(.disc,    in: tv) }
+        @objc func toggleNumberedList() { guard let tv = textView else { return }; toggleList(.decimal, in: tv) }
 
-        @objc func toggleNumberedList() {
-            guard let textView else { return }
-            toggleList(markerFormat: .decimal, in: textView)
-        }
+        private func toggleList(_ markerFormat: NSTextList.MarkerFormat, in tv: UITextView) {
+            let sel       = tv.selectedRange
+            let paraRange = (tv.text as NSString).paragraphRange(for: sel)
+            let m         = NSMutableAttributedString(attributedString: tv.attributedText)
 
-        private func toggleList(markerFormat: NSTextList.MarkerFormat, in textView: UITextView) {
-            let selectedRange = textView.selectedRange
-            let paragraphRange = (textView.text as NSString).paragraphRange(for: selectedRange)
-            let mutable = NSMutableAttributedString(attributedString: textView.attributedText)
-
-            // Check if ALL paragraphs in range already have this exact list type
-            var allHaveList = true
-            mutable.enumerateAttribute(.paragraphStyle, in: paragraphRange) { value, _, stop in
-                guard let style = value as? NSParagraphStyle,
-                      style.textLists.first?.markerFormat == markerFormat else {
-                    allHaveList = false
-                    stop.pointee = true
-                    return
-                }
+            var allHave = true
+            m.enumerateAttribute(.paragraphStyle, in: paraRange) { v, _, stop in
+                guard let s = v as? NSParagraphStyle, s.textLists.first?.markerFormat == markerFormat
+                else { allHave = false; stop.pointee = true; return }
             }
 
-            // One shared instance so numbered lists count sequentially across paragraphs
             let list = NSTextList(markerFormat: markerFormat, options: 0)
             list.startingItemNumber = 1
 
-            mutable.enumerateAttribute(.paragraphStyle, in: paragraphRange) { value, subRange, _ in
-                let style = (value as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle
-                    ?? NSMutableParagraphStyle()
-                if allHaveList {
-                    style.textLists = []
-                    style.headIndent = 0
-                    style.firstLineHeadIndent = 0
-                } else {
-                    style.textLists = [list]
-                    style.firstLineHeadIndent = 16
-                    style.headIndent = 32
+            // Apply to any text in the selection
+            if paraRange.length > 0 {
+                m.enumerateAttribute(.paragraphStyle, in: paraRange) { v, sub, _ in
+                    applyListStyle(allHave: allHave, list: list, to: v, in: sub, on: m)
                 }
-                mutable.addAttribute(.paragraphStyle, value: style, range: subRange)
+                tv.attributedText = m
+                tv.selectedRange  = sel
             }
 
-            textView.attributedText = mutable
-            textView.selectedRange = selectedRange
-            parent.attributedText = textView.attributedText
+            // Always sync typing attributes — critical for clicking the button on an empty line
+            var typing = tv.typingAttributes
+            let ts = (typing[.paragraphStyle] as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+            if allHave { ts.textLists = []; ts.headIndent = 0; ts.firstLineHeadIndent = 0 }
+            else        { ts.textLists = [list]; ts.firstLineHeadIndent = 16; ts.headIndent = 32 }
+            typing[.paragraphStyle] = ts
+            tv.typingAttributes = typing
+
+            parent.attributedText = tv.attributedText
+        }
+
+        private func applyListStyle(allHave: Bool, list: NSTextList, to value: Any?, in range: NSRange, on m: NSMutableAttributedString) {
+            let s = (value as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+            if allHave { s.textLists = []; s.headIndent = 0; s.firstLineHeadIndent = 0 }
+            else        { s.textLists = [list]; s.firstLineHeadIndent = 16; s.headIndent = 32 }
+            m.addAttribute(.paragraphStyle, value: s, range: range)
         }
 
         // MARK: Checklist
 
-        private static let unchecked = "☐"
-        private static let checked   = "☑"
-
         @objc func toggleChecklist() {
-            guard let textView else { return }
-            let selectedRange = textView.selectedRange
-            let nsText = textView.text as NSString
-            let fullRange = nsText.paragraphRange(for: selectedRange)
+            guard let tv = textView else { return }
+            let sel    = tv.selectedRange
+            let nsText = tv.text as NSString
+            let full   = nsText.paragraphRange(for: sel)
+            let font   = (tv.typingAttributes[.font] as? UIFont) ?? UIFont.preferredFont(forTextStyle: .body)
 
-            // Collect paragraph ranges (reverse order so insertions don't shift earlier ranges)
             var paraRanges: [NSRange] = []
-            var pos = fullRange.location
-            while pos < fullRange.location + fullRange.length {
+            var pos = full.location
+            while pos < full.location + full.length {
                 let r = nsText.paragraphRange(for: NSRange(location: pos, length: 0))
                 paraRanges.append(r)
                 pos = r.location + r.length
                 if r.length == 0 { break }
             }
 
-            let allHaveChecklist = paraRanges.allSatisfy { r in
-                let t = nsText.substring(with: r)
-                return t.hasPrefix(Coordinator.unchecked) || t.hasPrefix(Coordinator.checked)
+            let allHave = paraRanges.allSatisfy { r in
+                guard r.length > 0, r.location < tv.attributedText.length else { return false }
+                return tv.attributedText.attribute(.attachment, at: r.location, effectiveRange: nil) is CheckboxAttachment
             }
 
-            let mutable = NSMutableAttributedString(attributedString: textView.attributedText)
+            let m = NSMutableAttributedString(attributedString: tv.attributedText)
 
-            for paraRange in paraRanges.reversed() {
-                let paraText = (mutable.string as NSString).substring(with: paraRange)
-
-                if allHaveChecklist {
-                    // Remove "☐ " or "☑ " prefix
-                    var removeLen = 0
-                    if paraText.hasPrefix(Coordinator.unchecked) || paraText.hasPrefix(Coordinator.checked) {
-                        removeLen = 1
-                        if paraText.count > 1 {
-                            let secondIdx = paraText.index(paraText.startIndex, offsetBy: 1)
-                            if String(paraText[secondIdx]) == " " { removeLen = 2 }
-                        }
-                    }
-                    if removeLen > 0 {
-                        mutable.deleteCharacters(in: NSRange(location: paraRange.location, length: removeLen))
-                    }
-                    let newParaRange = (mutable.string as NSString).paragraphRange(for: NSRange(location: paraRange.location, length: 0))
-                    mutable.enumerateAttribute(.paragraphStyle, in: newParaRange) { value, sub, _ in
-                        let style = (value as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
-                        style.headIndent = 0
-                        style.firstLineHeadIndent = 0
-                        mutable.addAttribute(.paragraphStyle, value: style, range: sub)
-                    }
+            for r in paraRanges.reversed() {
+                if allHave {
+                    removeCheckboxPrefix(from: r.location, in: m, font: font)
                 } else {
-                    // Add "☐ " prefix if not already a checklist item
-                    if !paraText.hasPrefix(Coordinator.unchecked) && !paraText.hasPrefix(Coordinator.checked) {
-                        let attrs: [NSAttributedString.Key: Any] = paraRange.length > 0
-                            ? mutable.attributes(at: paraRange.location, effectiveRange: nil)
-                            : [.font: UIFont.preferredFont(forTextStyle: .body)]
-                        mutable.insert(NSAttributedString(string: "\(Coordinator.unchecked) ", attributes: attrs), at: paraRange.location)
-                    }
-                    let newParaRange = (mutable.string as NSString).paragraphRange(for: NSRange(location: paraRange.location, length: 0))
-                    mutable.enumerateAttribute(.paragraphStyle, in: newParaRange) { value, sub, _ in
-                        let style = (value as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
-                        style.headIndent = 22
-                        style.firstLineHeadIndent = 0
-                        mutable.addAttribute(.paragraphStyle, value: style, range: sub)
+                    guard !(r.length > 0 && r.location < m.length &&
+                            m.attribute(.attachment, at: r.location, effectiveRange: nil) is CheckboxAttachment)
+                    else { continue }
+
+                    let indent = checklistIndent(for: font)
+                    let prefix = newChecklistItem(font: font, indent: indent)
+                    m.insert(prefix, at: r.location)
+
+                    // Apply indentation to the whole paragraph
+                    let newParaRange = (m.string as NSString).paragraphRange(for: NSRange(location: r.location, length: 0))
+                    m.enumerateAttribute(.paragraphStyle, in: newParaRange) { v, sub, _ in
+                        let s = (v as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+                        s.firstLineHeadIndent = 0; s.headIndent = indent
+                        s.tabStops = [NSTextTab(textAlignment: .left, location: indent)]
+                        m.addAttribute(.paragraphStyle, value: s, range: sub)
                     }
                 }
             }
 
-            textView.attributedText = mutable
-            textView.selectedRange = NSRange(location: min(selectedRange.location, mutable.length), length: 0)
-            parent.attributedText = textView.attributedText
+            tv.attributedText = m
+
+            if !allHave, let first = paraRanges.first {
+                // Place cursor after [attachment][tab] so user can type immediately
+                tv.selectedRange = NSRange(location: min(first.location + 2, m.length), length: 0)
+            } else {
+                tv.selectedRange = NSRange(location: min(sel.location, m.length), length: 0)
+            }
+
+            parent.attributedText = tv.attributedText
         }
 
-        /// Tap recognizer: tapping a ☐/☑ character toggles it checked/unchecked.
+        // MARK: Tap — toggle checkbox on/off
+
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
-            guard let textView else { return }
-            let tapLocation = gesture.location(in: textView)
+            guard let tv = textView else { return }
+            let tapPt  = gesture.location(in: tv)
+            guard let pos = tv.closestPosition(to: tapPt) else { return }
+            let offset = tv.offset(from: tv.beginningOfDocument, to: pos)
+            let len    = tv.attributedText.length
+            let nsText = tv.text as NSString
 
-            guard let tapPosition = textView.closestPosition(to: tapLocation) else { return }
-            let offset = textView.offset(from: textView.beginningOfDocument, to: tapPosition)
-            let nsText = textView.text as NSString
-
-            // Check the character at `offset` and `offset - 1` (closestPosition can land
-            // either before or after the tapped glyph depending on tap x-position)
             for idx in [offset, offset - 1] {
-                guard idx >= 0 && idx < nsText.length else { continue }
-                let char = nsText.substring(with: NSRange(location: idx, length: 1))
-                guard char == Coordinator.unchecked || char == Coordinator.checked else { continue }
+                guard idx >= 0 && idx < len else { continue }
+                guard let box = tv.attributedText.attribute(.attachment, at: idx, effectiveRange: nil) as? CheckboxAttachment else { continue }
 
-                let isChecking = (char == Coordinator.unchecked)
-                let newCheckbox = isChecking ? Coordinator.checked : Coordinator.unchecked
-                let mutable = NSMutableAttributedString(attributedString: textView.attributedText)
+                let font = tv.attributedText.attribute(.font, at: idx, effectiveRange: nil) as? UIFont
+                    ?? UIFont.preferredFont(forTextStyle: .body)
 
-                // Swap checkbox character (preserve its attributes)
-                let checkboxAttrs = mutable.attributes(at: idx, effectiveRange: nil)
-                mutable.replaceCharacters(
-                    in: NSRange(location: idx, length: 1),
-                    with: NSAttributedString(string: newCheckbox, attributes: checkboxAttrs)
-                )
+                box.isChecked.toggle()
+                box.refreshImage(font: font)
 
-                // Apply / remove strikethrough on the line content after "☐ " / "☑ "
-                let paraRange = nsText.paragraphRange(for: NSRange(location: idx, length: 0))
-                let contentStart = idx + 2 // skip checkbox + space
-                let paraEnd = paraRange.location + paraRange.length
-                let hasNewline = paraEnd > 0 && nsText.character(at: paraEnd - 1) == unichar(("\n" as UnicodeScalar).value)
-                let contentEnd = paraEnd - (hasNewline ? 1 : 0)
+                let m = NSMutableAttributedString(attributedString: tv.attributedText)
+                // Rebuild the attachment character to force layout refresh
+                let repl = NSMutableAttributedString(attachment: box)
+                tv.attributedText.attributes(at: idx, effectiveRange: nil).forEach { key, val in
+                    if key != .attachment { repl.addAttribute(key, value: val, range: NSRange(location: 0, length: 1)) }
+                }
+                m.replaceCharacters(in: NSRange(location: idx, length: 1), with: repl)
+
+                // Strikethrough + dim the text content after [attachment][tab]
+                let para         = nsText.paragraphRange(for: NSRange(location: idx, length: 0))
+                let contentStart = idx + 2
+                let paraEnd      = para.location + para.length
+                let trimNewline  = paraEnd > 0 && nsText.character(at: paraEnd - 1) == unichar(("\n" as UnicodeScalar).value)
+                let contentEnd   = paraEnd - (trimNewline ? 1 : 0)
 
                 if contentStart < contentEnd {
-                    let contentRange = NSRange(location: contentStart, length: contentEnd - contentStart)
-                    if isChecking {
-                        mutable.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: contentRange)
-                        mutable.addAttribute(.foregroundColor, value: UIColor.secondaryLabel, range: contentRange)
+                    let cr = NSRange(location: contentStart, length: contentEnd - contentStart)
+                    if box.isChecked {
+                        m.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: cr)
+                        m.addAttribute(.foregroundColor, value: UIColor.tertiaryLabel, range: cr)
                     } else {
-                        mutable.removeAttribute(.strikethroughStyle, range: contentRange)
-                        mutable.removeAttribute(.foregroundColor, range: contentRange)
+                        m.removeAttribute(.strikethroughStyle, range: cr)
+                        m.removeAttribute(.foregroundColor,    range: cr)
                     }
                 }
 
-                textView.attributedText = mutable
-                parent.attributedText = textView.attributedText
+                tv.attributedText = m
+                parent.attributedText = m
                 return
+            }
+        }
+
+        // MARK: Private helpers
+
+        private func checklistIndent(for font: UIFont) -> CGFloat { ceil(font.pointSize) + 8 }
+
+        private func newChecklistItem(font: UIFont, indent: CGFloat) -> NSMutableAttributedString {
+            let style = NSMutableParagraphStyle()
+            style.firstLineHeadIndent = 0
+            style.headIndent          = indent
+            style.tabStops            = [NSTextTab(textAlignment: .left, location: indent)]
+
+            let box    = CheckboxAttachment(isChecked: false, font: font)
+            let result = NSMutableAttributedString(attachment: box)
+            result.addAttribute(.paragraphStyle, value: style, range: NSRange(location: 0, length: 1))
+            result.append(NSAttributedString(string: "\t", attributes: [.font: font, .paragraphStyle: style]))
+            return result
+        }
+
+        private func removeCheckboxPrefix(from location: Int, in m: NSMutableAttributedString, font: UIFont) {
+            guard location < m.length,
+                  m.attribute(.attachment, at: location, effectiveRange: nil) is CheckboxAttachment
+            else { return }
+
+            var removeLen = 1
+            if location + 1 < m.length,
+               (m.string as NSString).character(at: location + 1) == unichar(("\t" as UnicodeScalar).value) {
+                removeLen = 2
+            }
+            m.deleteCharacters(in: NSRange(location: location, length: removeLen))
+
+            let newR = (m.string as NSString).paragraphRange(for: NSRange(location: location, length: 0))
+            if newR.length > 0 {
+                m.enumerateAttribute(.paragraphStyle, in: newR) { v, sub, _ in
+                    let s = (v as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+                    s.headIndent = 0; s.firstLineHeadIndent = 0; s.tabStops = []
+                    m.addAttribute(.paragraphStyle, value: s, range: sub)
+                }
+            }
+        }
+
+        private func resetListStyle(in range: NSRange, on m: NSMutableAttributedString) {
+            guard range.length > 0 else { return }
+            m.enumerateAttribute(.paragraphStyle, in: range) { v, sub, _ in
+                let s = (v as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+                s.textLists = []; s.headIndent = 0; s.firstLineHeadIndent = 0
+                m.addAttribute(.paragraphStyle, value: s, range: sub)
             }
         }
     }
 }
 
-// MARK: - NSAttributedString RTF helpers
+// MARK: - NSAttributedString archive helpers
 
 extension NSAttributedString {
-    func rtfData() -> Data? {
+    /// Encodes using NSKeyedArchiver, preserving CheckboxAttachment and all custom attributes.
+    func encoded() -> Data? {
         guard length > 0 else { return nil }
-        return try? data(
-            from: NSRange(location: 0, length: length),
-            documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf]
-        )
+        return try? NSKeyedArchiver.archivedData(withRootObject: self, requiringSecureCoding: false)
     }
 
-    static func from(rtfData: Data) -> NSAttributedString? {
-        try? NSAttributedString(
-            data: rtfData,
-            options: [.documentType: NSAttributedString.DocumentType.rtf],
-            documentAttributes: nil
-        )
+    static func decoded(from data: Data) -> NSAttributedString? {
+        guard let u = try? NSKeyedUnarchiver(forReadingFrom: data) else { return nil }
+        u.requiresSecureCoding = false
+        return u.decodeObject(forKey: NSKeyedArchiveRootObjectKey) as? NSAttributedString
     }
 }
