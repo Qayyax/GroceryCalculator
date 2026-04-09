@@ -105,6 +105,13 @@ public final class ListsStore {
     }
 
     @MainActor
+    public func clearItems(from listID: GroceryList.ID) {
+        guard let idx = lists.firstIndex(where: { $0.id == listID }) else { return }
+        lists[idx].items.removeAll()
+        lists[idx].dateModified = Date()
+    }
+
+    @MainActor
     public func updateNotes(for listID: GroceryList.ID, data: Data?) {
         guard let idx = lists.firstIndex(where: { $0.id == listID }) else { return }
         lists[idx].notesData = data
