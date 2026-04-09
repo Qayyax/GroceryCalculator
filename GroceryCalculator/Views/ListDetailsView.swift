@@ -12,6 +12,7 @@ struct ListDetailsView: View {
     
     @State private var showingAddItem = false
     @State private var showingNotes = false
+    @State private var showingMenu = false
     @Environment(ListsStore.self) private var listStore
     
     // Computed property to get the current list from the store
@@ -36,7 +37,7 @@ struct ListDetailsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    
+                    showingMenu = true
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
@@ -54,6 +55,9 @@ struct ListDetailsView: View {
         }
         .sheet(isPresented: $showingNotes) {
             NotesPerListView(listID: groceryListID)
+        }
+        .sheet(isPresented: $showingMenu) {
+            GroceryListMenuOverlay(listID: groceryListID)
         }
         .overlay(alignment: .bottomTrailing) {
             floatingButtons

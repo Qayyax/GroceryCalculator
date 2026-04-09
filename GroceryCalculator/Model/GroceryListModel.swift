@@ -7,6 +7,7 @@
 
 import Foundation
 import Observation
+import SwiftUI
 
 // MARK: - Grocery Item
 public struct GroceryItem: Identifiable, Hashable, Codable {
