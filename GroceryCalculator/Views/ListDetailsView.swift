@@ -12,6 +12,7 @@ struct ListDetailsView: View {
     
     @State private var showingAddItem = false
     @State private var showingNotes = false
+    @State private var showingSetBudget = false
     @Environment(ListsStore.self) private var listStore
     
     // Computed property to get the current list from the store
@@ -37,7 +38,7 @@ struct ListDetailsView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button {
-                        // TODO: set budget functionality
+                        showingSetBudget = true
                     } label: {
                         Label("Set Budget", systemImage: "pencil")
                     }
@@ -69,6 +70,10 @@ struct ListDetailsView: View {
         }
         .sheet(isPresented: $showingNotes) {
             NotesPerListView(listID: groceryListID)
+        }
+        .sheet(isPresented: $showingSetBudget) {
+            SetBudgetComponent(listID: groceryListID)
+                .environment(listStore)
         }
 .overlay(alignment: .bottomTrailing) {
             floatingButtons
