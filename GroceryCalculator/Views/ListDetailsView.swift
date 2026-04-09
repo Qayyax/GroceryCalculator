@@ -42,8 +42,12 @@ struct ListDetailsView: View {
                     } label: {
                         Label("Set Budget", systemImage: "pencil")
                     }
-                    Button {
-                        // TODO: save to history functionality
+                    Menu {
+                        Section("This list will be saved as a reference and used to track your spending. It won't be editable after saving.") {
+                            Button("Save to History") {
+                                // TODO: save to history functionality
+                            }
+                        }
                     } label: {
                         Label("Save to History", systemImage: "clock.arrow.circlepath")
                     }
