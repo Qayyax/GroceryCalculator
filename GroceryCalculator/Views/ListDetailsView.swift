@@ -33,6 +33,15 @@ struct ListDetailsView: View {
         }
         .background(Color.primaryBg.ignoresSafeArea())
         .navigationTitle(groceryList?.title ?? "Grocery List")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
         .sheet(isPresented: $showingAddItem) {
             AddItemComponent { item in
                 listStore.addItem(
