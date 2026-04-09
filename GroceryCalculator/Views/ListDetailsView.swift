@@ -13,7 +13,6 @@ struct ListDetailsView: View {
     @State private var showingAddItem = false
     @State private var showingNotes = false
     @State private var showingSetBudget = false
-    @State private var showingClearConfirmation = false
     @Environment(ListsStore.self) private var listStore
     
     // Computed property to get the current list from the store
@@ -49,10 +48,15 @@ struct ListDetailsView: View {
                         Label("Save to History", systemImage: "clock.arrow.circlepath")
                     }
                     Divider()
-                    Button(role: .destructive) {
-                        showingClearConfirmation = true
+                    Menu {
+                        Section("This will remove all items from the list and can't be undone.") {
+                            Button("Clear List", role: .destructive) {
+                                listStore.clearItems(from: groceryListID)
+                            }
+                        }
                     } label: {
                         Label("Clear List", systemImage: "trash")
+                            .foregroundStyle(.red)
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -75,18 +79,6 @@ struct ListDetailsView: View {
         .sheet(isPresented: $showingSetBudget) {
             SetBudgetComponent(listID: groceryListID)
                 .environment(listStore)
-        }
-        .confirmationDialog(
-            "Clear This List",
-            isPresented: $showingClearConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Clear List", role: .destructive) {
-                listStore.clearItems(from: groceryListID)
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will remove all items from the list and can't be undone.")
         }
 .overlay(alignment: .bottomTrailing) {
             floatingButtons
