@@ -6,8 +6,7 @@
 //
 
 import SwiftUI
-let components = DateComponents(year: 2026, month: 3, day: 7, hour: 10, minute: 30)
-let specific = Calendar.current.date(from: components)!
+let specific = Calendar.current.date(from: DateComponents(year: 2026, month: 3, day: 7, hour: 10, minute: 30)) ?? Date()
 
 struct GroceryListView: View {
     var title: String

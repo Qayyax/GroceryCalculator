@@ -64,7 +64,7 @@ struct NotesPerListView: View {
 
 #Preview {
     let store = ListsStore()
-    let sampleList = GroceryList(id: UUID(), title: "Weekly Shop", budget: 150.00)
+    let sampleList = GroceryList(id: UUID(), title: "Weekly Shop", budget: 150.00 as Decimal)
     store.lists.append(sampleList)
 
     return NotesPerListView(listID: sampleList.id)

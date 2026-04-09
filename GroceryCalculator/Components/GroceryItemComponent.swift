@@ -64,7 +64,7 @@ struct GroceryItemComponent: View {
     GroceryItemComponent(
         item: GroceryItem(
             name: "Apples",
-            unitPrice: 2.99,
+            unitPrice: 2.99 as Decimal,
             quantity: 3
         ),
         onQuantityChange: { newQuantity in
