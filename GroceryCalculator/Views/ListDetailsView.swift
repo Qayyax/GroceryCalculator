@@ -39,7 +39,7 @@ struct ListDetailsView: View {
                     Button {
                         // TODO: set budget functionality
                     } label: {
-                        Label("Set Budget", systemImage: "slider.horizontal.3")
+                        Label("Set Budget", systemImage: "pencil")
                     }
                     Button {
                         // TODO: save to history functionality
