@@ -12,7 +12,6 @@ struct ListDetailsView: View {
     
     @State private var showingAddItem = false
     @State private var showingNotes = false
-    @State private var showingMenu = false
     @Environment(ListsStore.self) private var listStore
     
     // Computed property to get the current list from the store
@@ -36,8 +35,23 @@ struct ListDetailsView: View {
         .navigationTitle(groceryList?.title ?? "Grocery List")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showingMenu = true
+                Menu {
+                    Button {
+                        // TODO: set budget functionality
+                    } label: {
+                        Label("Set Budget", systemImage: "slider.horizontal.3")
+                    }
+                    Button {
+                        // TODO: save to history functionality
+                    } label: {
+                        Label("Save to History", systemImage: "clock.arrow.circlepath")
+                    }
+                    Divider()
+                    Button(role: .destructive) {
+                        // TODO: clear list functionality
+                    } label: {
+                        Label("Clear List", systemImage: "trash")
+                    }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
@@ -56,10 +70,7 @@ struct ListDetailsView: View {
         .sheet(isPresented: $showingNotes) {
             NotesPerListView(listID: groceryListID)
         }
-        .sheet(isPresented: $showingMenu) {
-            GroceryListMenuOverlay(listID: groceryListID)
-        }
-        .overlay(alignment: .bottomTrailing) {
+.overlay(alignment: .bottomTrailing) {
             floatingButtons
         }
     }
