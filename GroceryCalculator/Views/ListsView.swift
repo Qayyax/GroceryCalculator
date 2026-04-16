@@ -68,6 +68,7 @@ struct ListsView: View {
                                 .padding(.horizontal, 40)
                             Spacer()
                         }
+                        .frame(maxWidth: .infinity)
                     }
                     Spacer()
                 }
