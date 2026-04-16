@@ -10,6 +10,7 @@ import SwiftUI
 
 struct ListsView: View {
     @State private var isPresentingNewList = false
+    @State private var searchQuery: String = ""
     @Environment(ListsStore.self) var listStore
     
     var body: some View {
@@ -18,10 +19,19 @@ struct ListsView: View {
                 Color.primaryBg
                     .ignoresSafeArea()
                 VStack(alignment: .leading) {
-                    Text("Search component goes here")
-                        .padding(.horizontal)
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                        TextField("Search", text: $searchQuery)
+                    }
+                        .padding(7)
+                        .foregroundStyle(.itemAmountGray)
+                        .background {
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(.buttonStrokeGray)
+                        }
+                        .padding(.horizontal, 16)
                         .padding(.bottom, 24)
-                    
+
                     // list of items goes here
                     if !listStore.lists.isEmpty {
                         List {
