@@ -20,6 +20,10 @@ struct ListDetailsView: View {
         listStore.list(for: groceryListID)
     }
 
+    private var isHistoryItem: Bool {
+        listStore.history.contains(where: { $0.id == groceryListID })
+    }
+
     var body: some View {
         Group {
             if let list = groceryList {
@@ -37,30 +41,38 @@ struct ListDetailsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button {
-                        showingSetBudget = true
-                    } label: {
-                        Label("Set Budget", systemImage: "pencil")
-                    }
-                    Menu {
-                        Section("This list will be saved as a reference and used to track your spending. It won't be editable after saving.") {
-                            Button("Save to History") {
-                                listStore.saveToHistory(groceryListID)
-                            }
+                    if isHistoryItem {
+                        Button {
+                            listStore.restoreToList(groceryListID)
+                        } label: {
+                            Label("Send to List", systemImage: "arrow.uturn.left.circle")
                         }
-                    } label: {
-                        Label("Save to History", systemImage: "clock.arrow.circlepath")
-                    }
-                    Divider()
-                    Menu {
-                        Section("This will remove all items from the list and can't be undone.") {
-                            Button("Clear List", role: .destructive) {
-                                listStore.clearItems(from: groceryListID)
-                            }
+                    } else {
+                        Button {
+                            showingSetBudget = true
+                        } label: {
+                            Label("Set Budget", systemImage: "pencil")
                         }
-                    } label: {
-                        Label("Clear List", systemImage: "trash")
-                            .foregroundStyle(.red)
+                        Menu {
+                            Section("This list will be saved as a reference and used to track your spending. It won't be editable after saving.") {
+                                Button("Save to History") {
+                                    listStore.saveToHistory(groceryListID)
+                                }
+                            }
+                        } label: {
+                            Label("Save to History", systemImage: "clock.arrow.circlepath")
+                        }
+                        Divider()
+                        Menu {
+                            Section("This will remove all items from the list and can't be undone.") {
+                                Button("Clear List", role: .destructive) {
+                                    listStore.clearItems(from: groceryListID)
+                                }
+                            }
+                        } label: {
+                            Label("Clear List", systemImage: "trash")
+                                .foregroundStyle(.red)
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")

@@ -117,6 +117,13 @@ public final class ListsStore {
     }
 
     @MainActor
+    public func restoreToList(_ listID: GroceryList.ID) {
+        guard let list = history.first(where: { $0.id == listID }) else { return }
+        guard !lists.contains(where: { $0.id == listID }) else { return }
+        lists.append(list)
+    }
+
+    @MainActor
     public func clearItems(from listID: GroceryList.ID) {
         guard let idx = lists.firstIndex(where: { $0.id == listID }) else { return }
         lists[idx].items.removeAll()
