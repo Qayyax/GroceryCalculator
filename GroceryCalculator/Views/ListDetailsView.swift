@@ -17,7 +17,7 @@ struct ListDetailsView: View {
     
     // Computed property to get the current list from the store
     private var groceryList: GroceryList? {
-        listStore.lists.first(where: { $0.id == groceryListID })
+        listStore.list(for: groceryListID)
     }
 
     var body: some View {
@@ -45,7 +45,7 @@ struct ListDetailsView: View {
                     Menu {
                         Section("This list will be saved as a reference and used to track your spending. It won't be editable after saving.") {
                             Button("Save to History") {
-                                // TODO: save to history functionality
+                                listStore.saveToHistory(groceryListID)
                             }
                         }
                     } label: {

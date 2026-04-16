@@ -15,7 +15,7 @@ struct ContentView: View {
                 ListsView()
             }
             Tab(Constants.Tabs.historyPageTitle, systemImage: Constants.Tabs.historyPageIcon) {
-                Text("History page")
+                HistoryView()
             }
             Tab(Constants.Tabs.settingsPageTitle, systemImage: Constants.Tabs.settingsPageIcon) {
                 Text("Settings page")

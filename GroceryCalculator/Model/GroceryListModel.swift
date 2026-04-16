@@ -62,9 +62,15 @@ public struct GroceryList: Identifiable, Hashable, Codable {
 @Observable
 public final class ListsStore {
     public var lists: [GroceryList]
+    public var history: [GroceryList]
 
-    public init(lists: [GroceryList] = []) {
+    public init(lists: [GroceryList] = [], history: [GroceryList] = []) {
         self.lists = lists
+        self.history = history
+    }
+
+    public func list(for id: GroceryList.ID) -> GroceryList? {
+        lists.first(where: { $0.id == id }) ?? history.first(where: { $0.id == id })
     }
 
     // CRUD Operations
@@ -102,6 +108,12 @@ public final class ListsStore {
         guard let idx = lists.firstIndex(where: { $0.id == listID }) else { return }
         lists[idx].items.remove(atOffsets: offsets)
         lists[idx].dateModified = Date()
+    }
+
+    @MainActor
+    public func saveToHistory(_ listID: GroceryList.ID) {
+        guard let list = lists.first(where: { $0.id == listID }) else { return }
+        history.insert(list, at: 0)
     }
 
     @MainActor
