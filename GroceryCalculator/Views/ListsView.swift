@@ -13,6 +13,15 @@ struct ListsView: View {
     @State private var searchQuery: String = ""
     @Environment(ListsStore.self) var listStore
     
+    private var filteredLists: [GroceryList] {
+        if searchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
+            return listStore.lists
+        }
+        return listStore.lists.filter {
+            $0.title.localizedCaseInsensitiveContains(searchQuery)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -33,9 +42,9 @@ struct ListsView: View {
                         .padding(.bottom, 24)
 
                     // list of items goes here
-                    if !listStore.lists.isEmpty {
+                    if !filteredLists.isEmpty {
                         List {
-                            ForEach(listStore.lists) { list in
+                            ForEach(filteredLists) { list in
                                 NavigationLink(destination: ListDetailsView(groceryListID: list.id)) {
                                     GroceryListView(title: list.title, date: list.dateModified)
                                 }
