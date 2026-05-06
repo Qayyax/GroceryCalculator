@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct NotesPerListView: View {
     let list: GroceryList
@@ -63,7 +64,7 @@ struct NotesPerListView: View {
     let list = GroceryList(title: "Weekly Shop", budget: 150.00)
     container.mainContext.insert(list)
 
-    return NotesPerListView(list: list)
+    NotesPerListView(list: list)
         .modelContainer(container)
         .environment(ListsStore(modelContext: container.mainContext))
 }

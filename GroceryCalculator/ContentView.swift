@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
     
@@ -25,8 +26,11 @@ struct ContentView: View {
 }
 
 #Preview {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: GroceryList.self, GroceryItem.self, configurations: config)
     ContentView()
-        .environment(ListsStore())
+        .modelContainer(container)
+        .environment(ListsStore(modelContext: container.mainContext))
         .environment(SettingsStore())
 }
 

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct SetBudgetComponent: View {
     let list: GroceryList
@@ -98,7 +99,7 @@ struct SetBudgetComponent: View {
     let list = GroceryList(title: "Weekly Shop", budget: 150.00)
     container.mainContext.insert(list)
 
-    return SetBudgetComponent(list: list)
+    SetBudgetComponent(list: list)
         .modelContainer(container)
         .environment(ListsStore(modelContext: container.mainContext))
 }
