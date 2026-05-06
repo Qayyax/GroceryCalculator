@@ -46,12 +46,13 @@ struct SettingsView: View {
                     Text("Currency")
                     Spacer()
                     Text(settingsStore.selectedCurrency)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.itemAmountGray)
+                        .bold()
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.itemAmountGray)
                 }
-                .foregroundStyle(.primary)
+                .foregroundStyle(.black)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 16)
             }
@@ -64,12 +65,14 @@ struct SettingsView: View {
             } label: {
                 HStack {
                     Text("Tax")
+                        .foregroundStyle(.black)
                     Spacer()
                     Text(settingsStore.taxInclusive ? "Inclusive" : "Off")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.itemAmountGray)
+                        .bold()
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.itemAmountGray)
                 }
                 .foregroundStyle(.primary)
                 .padding(.horizontal, 16)

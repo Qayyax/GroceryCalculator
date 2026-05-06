@@ -58,7 +58,7 @@ struct CurrencyView: View {
                 } label: {
                     HStack {
                         Text(currency)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(.black)
                         Spacer()
                         if settingsStore.selectedCurrency == currency {
                             Image(systemName: "checkmark")
