@@ -8,27 +8,26 @@
 import SwiftUI
 
 struct BudgetCard: View {
-    let budget: Decimal
-    let remaining: Decimal
-    let spent: Decimal
+    let budget: Double
+    let remaining: Double
+    let spent: Double
     @State private var isPresented: Bool
 
     @Environment(SettingsStore.self) private var settingsStore
 
-    init(budget: Decimal, remaining: Decimal, spent: Decimal, isPresented: Bool = true) {
+    init(budget: Double, remaining: Double, spent: Double, isPresented: Bool = true) {
         self.budget = budget
         self.remaining = remaining
         self.spent = spent
         _isPresented = State(initialValue: isPresented)
     }
 
-    private func formattedAmount(_ value: Decimal) -> String {
+    private func formattedAmount(_ value: Double) -> String {
         if !isPresented { return "****" }
-        let number = NSDecimalNumber(decimal: value)
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = settingsStore.selectedCurrency
-        return formatter.string(from: number) ?? "$0.00"
+        return formatter.string(from: NSNumber(value: value)) ?? "$0.00"
     }
 
     var body: some View {

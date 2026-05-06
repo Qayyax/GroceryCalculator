@@ -13,21 +13,16 @@ struct GroceryItemComponent: View {
 
     @Environment(SettingsStore.self) private var settingsStore
 
-    private func formattedAmount(_ value: Decimal) -> String {
-        let number = NSDecimalNumber(decimal: value)
+    private func formattedAmount(_ value: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = settingsStore.selectedCurrency
-        return formatter.string(from: number) ?? "$0.00"
+        return formatter.string(from: NSNumber(value: value)) ?? "$0.00"
     }
 
-    private var currentTotal: Decimal {
-        item.unitPrice * Decimal(item.quantity)
-    }
-
-    private var taxInclusiveTotal: Decimal? {
-        guard settingsStore.taxMultiplier != 1 else { return nil }
-        return currentTotal * settingsStore.taxMultiplier
+    private var taxInclusiveTotal: Double? {
+        guard settingsStore.taxMultiplier != 1.0 else { return nil }
+        return item.total * settingsStore.taxMultiplier
     }
 
     var body: some View {
@@ -41,7 +36,7 @@ struct GroceryItemComponent: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(formattedAmount(currentTotal))
+                    Text(formattedAmount(item.total))
                         .font(.title2.bold())
                     if let taxTotal = taxInclusiveTotal {
                         Text(formattedAmount(taxTotal))
@@ -76,14 +71,8 @@ struct GroceryItemComponent: View {
 
 #Preview {
     GroceryItemComponent(
-        item: GroceryItem(
-            name: "Apples",
-            unitPrice: 2.99 as Decimal,
-            quantity: 3
-        ),
-        onQuantityChange: { newQuantity in
-            print("Quantity changed to: \(newQuantity)")
-        }
+        item: GroceryItem(name: "Apples", unitPrice: 2.99, quantity: 3),
+        onQuantityChange: { print("Quantity: \($0)") }
     )
     .padding()
     .environment(SettingsStore())

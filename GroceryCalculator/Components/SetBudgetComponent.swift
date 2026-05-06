@@ -8,14 +8,14 @@
 import SwiftUI
 
 struct SetBudgetComponent: View {
-    let listID: GroceryList.ID
+    let list: GroceryList
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ListsStore.self) private var listStore
 
     @State private var budgetText: String = ""
 
-    private var budgetValue: Decimal? {
+    private var budgetValue: Double? {
         let cleaned = budgetText
             .trimmingCharacters(in: .whitespaces)
             .replacingOccurrences(of: "$", with: "")
@@ -24,7 +24,7 @@ struct SetBudgetComponent: View {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         guard let number = formatter.number(from: cleaned) else { return nil }
-        return Decimal(string: number.stringValue)
+        return number.doubleValue
     }
 
     private var isFormValid: Bool {
@@ -81,24 +81,24 @@ struct SetBudgetComponent: View {
             }
         }
         .onAppear {
-            if let current = listStore.lists.first(where: { $0.id == listID })?.budget {
-                budgetText = "\(current)"
-            }
+            budgetText = String(list.budget)
         }
     }
 
     private func saveBudget() {
         guard let value = budgetValue else { return }
-        listStore.updateListMeta(listID, budget: value)
+        listStore.updateListMeta(list, budget: value)
         dismiss()
     }
 }
 
 #Preview {
-    let store = ListsStore()
-    let sampleList = GroceryList(id: UUID(), title: "Weekly Shop", budget: 150.00 as Decimal)
-    store.lists.append(sampleList)
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: GroceryList.self, GroceryItem.self, configurations: config)
+    let list = GroceryList(title: "Weekly Shop", budget: 150.00)
+    container.mainContext.insert(list)
 
-    return SetBudgetComponent(listID: sampleList.id)
-        .environment(store)
+    return SetBudgetComponent(list: list)
+        .modelContainer(container)
+        .environment(ListsStore(modelContext: container.mainContext))
 }

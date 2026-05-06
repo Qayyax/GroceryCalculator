@@ -41,10 +41,10 @@ public final class SettingsStore {
         }
     }
 
-    // Decimal multiplier for tax (1.0 when tax is off or 0%)
-    public var taxMultiplier: Decimal {
-        guard taxInclusive && taxPercentage > 0 else { return 1 }
-        return Decimal(1) + Decimal(taxPercentage) / Decimal(100)
+    // Multiplier for tax-inclusive totals (1.0 when tax is off or 0%)
+    public var taxMultiplier: Double {
+        guard taxInclusive && taxPercentage > 0 else { return 1.0 }
+        return 1.0 + taxPercentage / 100.0
     }
 
     private enum Keys {

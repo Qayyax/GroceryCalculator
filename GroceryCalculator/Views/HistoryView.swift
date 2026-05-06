@@ -6,16 +6,21 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct HistoryView: View {
     @State private var searchQuery: String = ""
     @Environment(ListsStore.self) var listStore
 
+    @Query(filter: #Predicate<GroceryList> { $0.isHistory == true },
+           sort: \GroceryList.dateModified, order: .reverse)
+    private var allHistory: [GroceryList]
+
     private var filteredHistory: [GroceryList] {
         if searchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
-            return listStore.history
+            return allHistory
         }
-        return listStore.history.filter {
+        return allHistory.filter {
             $0.title.localizedCaseInsensitiveContains(searchQuery)
         }
     }
@@ -42,7 +47,7 @@ struct HistoryView: View {
                     if !filteredHistory.isEmpty {
                         List {
                             ForEach(filteredHistory) { list in
-                                NavigationLink(destination: ListDetailsView(groceryListID: list.id)) {
+                                NavigationLink(destination: ListDetailsView(groceryList: list)) {
                                     GroceryListView(title: list.title, date: list.dateModified)
                                 }
                             }
@@ -73,7 +78,10 @@ struct HistoryView: View {
 }
 
 #Preview {
-    HistoryView()
-        .environment(ListsStore())
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: GroceryList.self, GroceryItem.self, configurations: config)
+    return HistoryView()
+        .modelContainer(container)
+        .environment(ListsStore(modelContext: container.mainContext))
         .environment(SettingsStore())
 }

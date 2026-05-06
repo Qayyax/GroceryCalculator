@@ -8,45 +8,43 @@
 import SwiftUI
 
 struct AddItemComponent: View {
-    let onAddItem: (GroceryItem) -> Void
-    
+    let onAddItem: (String, Double) -> Void
+
     @Environment(\.dismiss) private var dismiss
-    
+
     @State private var name: String = ""
     @State private var priceText: String = ""
-    
-    private var priceValue: Decimal? {
-        // Try to parse the price from the text
+
+    private var priceValue: Double? {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
-        
-        // Remove currency symbols and whitespace
+
         let cleaned = priceText.trimmingCharacters(in: .whitespaces)
             .replacingOccurrences(of: "$", with: "")
             .replacingOccurrences(of: ",", with: "")
-        
+
         if cleaned.isEmpty { return nil }
-        
+
         if let number = formatter.number(from: cleaned) {
-            return Decimal(string: number.stringValue)
+            return number.doubleValue
         }
         return nil
     }
-    
+
     private var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
         (priceValue ?? 0) > 0
     }
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.primaryBg
                     .ignoresSafeArea()
-                
+
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Product Name")
-                    
+
                     TextField("Cereal, Bacon, Eggs...", text: $name)
                         .padding(.vertical, 14)
                         .padding(.horizontal, 16)
@@ -54,9 +52,9 @@ struct AddItemComponent: View {
                             RoundedRectangle(cornerRadius: 10)
                                 .fill(.white)
                         }
-                    
+
                     Text("Price")
-                    
+
                     TextField("0.00", text: $priceText)
                         .keyboardType(.decimalPad)
                         .padding(.vertical, 14)
@@ -65,7 +63,7 @@ struct AddItemComponent: View {
                             RoundedRectangle(cornerRadius: 10)
                                 .fill(.white)
                         }
-                    
+
                     HStack(alignment: .center) {
                         Button {
                             addItem()
@@ -83,7 +81,7 @@ struct AddItemComponent: View {
                     }
                     .padding(.top, 40)
                     .frame(maxWidth: .infinity)
-                    
+
                     Spacer()
                 }
                 .padding()
@@ -101,18 +99,17 @@ struct AddItemComponent: View {
             }
         }
     }
-    
+
     private func addItem() {
-        guard let priceValue = priceValue else { return }
+        guard let price = priceValue else { return }
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
-        let newItem = GroceryItem(name: trimmedName, unitPrice: priceValue, quantity: 1)
-        onAddItem(newItem)
+        onAddItem(trimmedName, price)
         dismiss()
     }
 }
 
 #Preview {
-    AddItemComponent { item in
-        print("Added item: \(item.name) - \(item.unitPrice)")
+    AddItemComponent { name, price in
+        print("Added: \(name) - \(price)")
     }
 }

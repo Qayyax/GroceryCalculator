@@ -7,147 +7,134 @@
 
 import Foundation
 import Observation
-import SwiftUI
+import SwiftData
 
 // MARK: - Grocery Item
-public struct GroceryItem: Identifiable, Hashable, Codable {
-    public let id: UUID
-    public var name: String
-    public var unitPrice: Decimal
-    public var quantity: Int
-    public init(id: UUID = UUID(), name: String, unitPrice: Decimal, quantity: Int) {
-        self.id = id
+
+@Model
+final class GroceryItem {
+    var name: String
+    var unitPrice: Double
+    var quantity: Int
+
+    init(name: String, unitPrice: Double, quantity: Int) {
         self.name = name
         self.unitPrice = unitPrice
         self.quantity = quantity
     }
 
-    public var total: Decimal { unitPrice * Decimal(quantity) }
+    var total: Double { unitPrice * Double(quantity) }
 }
 
 // MARK: - Grocery List
-public struct GroceryList: Identifiable, Hashable, Codable {
-    public let id: UUID
-    public var title: String
-    public var dateCreated: Date
-    public var dateModified: Date
-    public var budget: Decimal
-    public var items: [GroceryItem]
-    public var notesData: Data?
 
-    public init(
-        id: UUID = UUID(),
+@Model
+final class GroceryList {
+    var title: String
+    var dateCreated: Date
+    var dateModified: Date
+    var budget: Double
+    var isHistory: Bool
+    var notesData: Data?
+    @Relationship(deleteRule: .cascade) var items: [GroceryItem] = []
+
+    init(
         title: String,
         dateCreated: Date = Date(),
         dateModified: Date = Date(),
-        budget: Decimal,
-        items: [GroceryItem] = [],
+        budget: Double,
+        isHistory: Bool = false,
         notesData: Data? = nil
     ) {
-        self.id = id
         self.title = title
         self.dateCreated = dateCreated
         self.dateModified = dateModified
         self.budget = budget
-        self.items = items
+        self.isHistory = isHistory
         self.notesData = notesData
     }
 
-    // Derived value to avoid drift; compute from items
-    public var amountSpent: Decimal { items.reduce(0) { $0 + $1.total } }
-    public var remaining: Decimal { budget - amountSpent }
+    var amountSpent: Double { items.reduce(0) { $0 + $1.total } }
+    var remaining: Double { budget - amountSpent }
 }
 
-// MARK: - Observable Store for Lists
+// MARK: - Store
+
 @Observable
-public final class ListsStore {
-    public var lists: [GroceryList]
-    public var history: [GroceryList]
+final class ListsStore {
+    private let modelContext: ModelContext
 
-    public init(lists: [GroceryList] = [], history: [GroceryList] = []) {
-        self.lists = lists
-        self.history = history
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
     }
 
-    public func list(for id: GroceryList.ID) -> GroceryList? {
-        lists.first(where: { $0.id == id }) ?? history.first(where: { $0.id == id })
-    }
+    // MARK: List CRUD
 
-    // CRUD Operations
-    @MainActor
-    public func addList(title: String, budget: Decimal) {
+    func addList(title: String, budget: Double) {
         let now = Date()
-        let new = GroceryList(title: title, dateCreated: now, dateModified: now, budget: budget, items: [])
-        lists.append(new)
+        let list = GroceryList(title: title, dateCreated: now, dateModified: now, budget: budget)
+        modelContext.insert(list)
     }
 
-    @MainActor
-    public func deleteLists(at offsets: IndexSet) {
-        lists.remove(atOffsets: offsets)
+    func deleteList(_ list: GroceryList) {
+        modelContext.delete(list)
     }
 
-    @MainActor
-    public func addItem(to listID: GroceryList.ID, name: String, unitPrice: Decimal, quantity: Int) {
-        guard let idx = lists.firstIndex(where: { $0.id == listID }) else { return }
-        lists[idx].items.append(GroceryItem(name: name, unitPrice: unitPrice, quantity: quantity))
-        lists[idx].dateModified = Date()
+    // MARK: Item CRUD
+
+    func addItem(to list: GroceryList, name: String, unitPrice: Double, quantity: Int = 1) {
+        let item = GroceryItem(name: name, unitPrice: unitPrice, quantity: quantity)
+        modelContext.insert(item)
+        list.items.append(item)
+        list.dateModified = Date()
     }
 
-    @MainActor
-    public func updateItem(in listID: GroceryList.ID, itemID: GroceryItem.ID, name: String? = nil, unitPrice: Decimal? = nil, quantity: Int? = nil) {
-        guard let lIdx = lists.firstIndex(where: { $0.id == listID }) else { return }
-        guard let iIdx = lists[lIdx].items.firstIndex(where: { $0.id == itemID }) else { return }
-        if let name { lists[lIdx].items[iIdx].name = name }
-        if let unitPrice { lists[lIdx].items[iIdx].unitPrice = unitPrice }
-        if let quantity { lists[lIdx].items[iIdx].quantity = quantity }
-        lists[lIdx].dateModified = Date()
+    func updateQuantity(of item: GroceryItem, in list: GroceryList, quantity: Int) {
+        item.quantity = quantity
+        list.dateModified = Date()
     }
 
-    @MainActor
-    public func removeItems(from listID: GroceryList.ID, at offsets: IndexSet) {
-        guard let idx = lists.firstIndex(where: { $0.id == listID }) else { return }
-        lists[idx].items.remove(atOffsets: offsets)
-        lists[idx].dateModified = Date()
+    func removeItems(from list: GroceryList, at offsets: IndexSet) {
+        let toDelete = offsets.map { list.items[$0] }
+        list.items.remove(atOffsets: offsets)
+        toDelete.forEach { modelContext.delete($0) }
+        list.dateModified = Date()
     }
 
-    @MainActor
-    public func saveToHistory(_ listID: GroceryList.ID) {
-        guard let list = lists.first(where: { $0.id == listID }) else { return }
-        history.insert(list, at: 0)
+    func clearItems(from list: GroceryList) {
+        list.items.forEach { modelContext.delete($0) }
+        list.items.removeAll()
+        list.dateModified = Date()
     }
 
-    @MainActor
-    public func restoreToList(_ listID: GroceryList.ID) {
-        guard let list = history.first(where: { $0.id == listID }) else { return }
-        guard !lists.contains(where: { $0.id == listID }) else { return }
-        lists.append(list)
+    // MARK: History
+
+    func saveToHistory(_ list: GroceryList) {
+        list.isHistory = true
+        list.dateModified = Date()
     }
 
-    @MainActor
-    public func clearItems(from listID: GroceryList.ID) {
-        guard let idx = lists.firstIndex(where: { $0.id == listID }) else { return }
-        lists[idx].items.removeAll()
-        lists[idx].dateModified = Date()
+    func restoreToList(_ list: GroceryList) {
+        list.isHistory = false
+        list.dateModified = Date()
     }
 
-    @MainActor
-    public func updateNotes(for listID: GroceryList.ID, data: Data?) {
-        guard let idx = lists.firstIndex(where: { $0.id == listID }) else { return }
-        lists[idx].notesData = data
-        lists[idx].dateModified = Date()
+    func clearHistory() {
+        let descriptor = FetchDescriptor<GroceryList>(predicate: #Predicate { $0.isHistory })
+        let historyLists = (try? modelContext.fetch(descriptor)) ?? []
+        historyLists.forEach { modelContext.delete($0) }
     }
 
-    @MainActor
-    public func updateListMeta(_ listID: GroceryList.ID, title: String? = nil, budget: Decimal? = nil) {
-        guard let idx = lists.firstIndex(where: { $0.id == listID }) else { return }
-        if let title { lists[idx].title = title }
-        if let budget { lists[idx].budget = budget }
-        lists[idx].dateModified = Date()
+    // MARK: Metadata
+
+    func updateNotes(for list: GroceryList, data: Data?) {
+        list.notesData = data
+        list.dateModified = Date()
     }
 
-    @MainActor
-    public func clearHistory() {
-        history.removeAll()
+    func updateListMeta(_ list: GroceryList, title: String? = nil, budget: Double? = nil) {
+        if let title { list.title = title }
+        if let budget { list.budget = budget }
+        list.dateModified = Date()
     }
 }
-

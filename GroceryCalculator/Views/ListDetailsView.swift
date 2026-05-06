@@ -6,147 +6,123 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ListDetailsView: View {
-    let groceryListID: GroceryList.ID
-    
+    let groceryList: GroceryList
+
     @State private var showingAddItem = false
     @State private var showingNotes = false
     @State private var showingSetBudget = false
     @Environment(ListsStore.self) private var listStore
     @Environment(SettingsStore.self) private var settingsStore
-    
-    // Computed property to get the current list from the store
-    private var groceryList: GroceryList? {
-        listStore.list(for: groceryListID)
-    }
 
     private var isHistoryItem: Bool {
-        listStore.history.contains(where: { $0.id == groceryListID })
+        groceryList.isHistory
     }
 
-    private func effectiveSpent(for list: GroceryList) -> Decimal {
-        list.amountSpent * settingsStore.taxMultiplier
+    private var effectiveSpent: Double {
+        groceryList.amountSpent * settingsStore.taxMultiplier
     }
 
-    private func effectiveRemaining(for list: GroceryList) -> Decimal {
-        list.budget - effectiveSpent(for: list)
+    private var effectiveRemaining: Double {
+        groceryList.budget - effectiveSpent
     }
 
     var body: some View {
-        Group {
-            if let list = groceryList {
-                listContent(for: list)
-            } else {
-                ContentUnavailableView(
-                    "List Not Found",
-                    systemImage: "list.bullet.clipboard",
-                    description: Text("This grocery list may have been deleted.")
-                )
-            }
-        }
-        .background(Color.primaryBg.ignoresSafeArea())
-        .navigationTitle(groceryList?.title ?? "Grocery List")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    if isHistoryItem {
-                        Button {
-                            listStore.restoreToList(groceryListID)
-                        } label: {
-                            Label("Send to List", systemImage: "arrow.uturn.left.circle")
-                        }
-                    } else {
-                        Button {
-                            showingSetBudget = true
-                        } label: {
-                            Label("Set Budget", systemImage: "pencil")
-                        }
-                        Menu {
-                            Section("This list will be saved as a reference and used to track your spending. It won't be editable after saving.") {
-                                Button("Save to History") {
-                                    listStore.saveToHistory(groceryListID)
-                                }
+        listContent
+            .background(Color.primaryBg.ignoresSafeArea())
+            .navigationTitle(groceryList.title)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        if isHistoryItem {
+                            Button {
+                                listStore.restoreToList(groceryList)
+                            } label: {
+                                Label("Send to List", systemImage: "arrow.uturn.left.circle")
                             }
-                        } label: {
-                            Label("Save to History", systemImage: "clock.arrow.circlepath")
-                        }
-                        Divider()
-                        Menu {
-                            Section("This will remove all items from the list and can't be undone.") {
-                                Button("Clear List", role: .destructive) {
-                                    listStore.clearItems(from: groceryListID)
-                                }
+                        } else {
+                            Button {
+                                showingSetBudget = true
+                            } label: {
+                                Label("Set Budget", systemImage: "pencil")
                             }
-                        } label: {
-                            Label("Clear List", systemImage: "trash")
-                                .foregroundStyle(.red)
+                            Menu {
+                                Section("This list will be saved as a reference and used to track your spending. It won't be editable after saving.") {
+                                    Button("Save to History") {
+                                        listStore.saveToHistory(groceryList)
+                                    }
+                                }
+                            } label: {
+                                Label("Save to History", systemImage: "clock.arrow.circlepath")
+                            }
+                            Divider()
+                            Menu {
+                                Section("This will remove all items from the list and can't be undone.") {
+                                    Button("Clear List", role: .destructive) {
+                                        listStore.clearItems(from: groceryList)
+                                    }
+                                }
+                            } label: {
+                                Label("Clear List", systemImage: "trash")
+                                    .foregroundStyle(.red)
+                            }
                         }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
                     }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
                 }
             }
-        }
-        .sheet(isPresented: $showingAddItem) {
-            AddItemComponent { item in
-                listStore.addItem(
-                    to: groceryListID,
-                    name: item.name,
-                    unitPrice: item.unitPrice,
-                    quantity: item.quantity
-                )
+            .sheet(isPresented: $showingAddItem) {
+                AddItemComponent { name, unitPrice in
+                    listStore.addItem(to: groceryList, name: name, unitPrice: unitPrice)
+                }
             }
-        }
-        .sheet(isPresented: $showingNotes) {
-            NotesPerListView(listID: groceryListID)
-        }
-        .sheet(isPresented: $showingSetBudget) {
-            SetBudgetComponent(listID: groceryListID)
-                .environment(listStore)
-        }
-.overlay(alignment: .bottomTrailing) {
-            floatingButtons
-        }
+            .sheet(isPresented: $showingNotes) {
+                NotesPerListView(list: groceryList)
+            }
+            .sheet(isPresented: $showingSetBudget) {
+                SetBudgetComponent(list: groceryList)
+                    .environment(listStore)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                floatingButtons
+            }
     }
-    
-    @ViewBuilder
-    private func listContent(for list: GroceryList) -> some View {
+
+    private var listContent: some View {
         VStack(spacing: 0) {
             BudgetCard(
-                budget: list.budget,
-                remaining: effectiveRemaining(for: list),
-                spent: effectiveSpent(for: list)
+                budget: groceryList.budget,
+                remaining: effectiveRemaining,
+                spent: effectiveSpent
             )
             .padding(.horizontal)
             .padding(.top)
             .padding(.bottom, 16)
-            
-            if list.items.isEmpty {
+
+            if groceryList.items.isEmpty {
                 emptyStateView
             } else {
                 List {
-                    ForEach(list.items) { item in
+                    ForEach(groceryList.items) { item in
                         GroceryItemComponent(item: item) { newQuantity in
-                            listStore.updateItem(
-                                in: groceryListID,
-                                itemID: item.id,
-                                quantity: newQuantity
-                            )
+                            listStore.updateQuantity(of: item, in: groceryList, quantity: newQuantity)
                         }
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         .listRowSeparator(.hidden)
                         .buttonStyle(.plain)
                     }
                     .onDelete { indexSet in
-                        listStore.removeItems(from: groceryListID, at: indexSet)
+                        listStore.removeItems(from: groceryList, at: indexSet)
                     }
                 }
                 .scrollContentBackground(.hidden)
             }
         }
     }
-    
+
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             Spacer()
@@ -164,7 +140,7 @@ struct ListDetailsView: View {
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private var floatingButtons: some View {
         VStack(spacing: 12) {
             Button {
@@ -182,12 +158,15 @@ struct ListDetailsView: View {
         .padding(.bottom, 20)
     }
 }
-#Preview {
-    let store = ListsStore()
-    let sampleList = GroceryList(id: UUID(), title: "Fish", budget: 200.34 as Decimal)
-    store.lists.append(sampleList)
 
-    return ListDetailsView(groceryListID: sampleList.id)
-        .environment(store)
+#Preview {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: GroceryList.self, GroceryItem.self, configurations: config)
+    let list = GroceryList(title: "Fish", budget: 200.34)
+    container.mainContext.insert(list)
+
+    return ListDetailsView(groceryList: list)
+        .modelContainer(container)
+        .environment(ListsStore(modelContext: container.mainContext))
         .environment(SettingsStore())
 }

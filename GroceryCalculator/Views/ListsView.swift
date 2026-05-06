@@ -6,18 +6,22 @@
 //
 
 import SwiftUI
-
+import SwiftData
 
 struct ListsView: View {
     @State private var isPresentingNewList = false
     @State private var searchQuery: String = ""
     @Environment(ListsStore.self) var listStore
-    
+
+    @Query(filter: #Predicate<GroceryList> { $0.isHistory == false },
+           sort: \GroceryList.dateModified, order: .reverse)
+    private var allLists: [GroceryList]
+
     private var filteredLists: [GroceryList] {
         if searchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
-            return listStore.lists
+            return allLists
         }
-        return listStore.lists.filter {
+        return allLists.filter {
             $0.title.localizedCaseInsensitiveContains(searchQuery)
         }
     }
@@ -32,25 +36,24 @@ struct ListsView: View {
                         Image(systemName: "magnifyingglass")
                         TextField("Search", text: $searchQuery)
                     }
-                        .padding(7)
-                        .foregroundStyle(.itemAmountGray)
-                        .background {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(.buttonStrokeGray)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 24)
+                    .padding(7)
+                    .foregroundStyle(.itemAmountGray)
+                    .background {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(.buttonStrokeGray)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
 
-                    // list of items goes here
                     if !filteredLists.isEmpty {
                         List {
                             ForEach(filteredLists) { list in
-                                NavigationLink(destination: ListDetailsView(groceryListID: list.id)) {
+                                NavigationLink(destination: ListDetailsView(groceryList: list)) {
                                     GroceryListView(title: list.title, date: list.dateModified)
                                 }
                             }
                             .onDelete { indexSet in
-                                listStore.deleteLists(at: indexSet)
+                                indexSet.forEach { listStore.deleteList(filteredLists[$0]) }
                             }
                         }
                     } else {
@@ -87,14 +90,17 @@ struct ListsView: View {
         }
         .sheet(isPresented: $isPresentingNewList) {
             NewList { title, budget in
-                listStore.addList(title: title, budget: Decimal(budget))
+                listStore.addList(title: title, budget: budget)
             }
         }
     }
 }
 
 #Preview {
-    ListsView()
-        .environment(ListsStore())
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: GroceryList.self, GroceryItem.self, configurations: config)
+    return ListsView()
+        .modelContainer(container)
+        .environment(ListsStore(modelContext: container.mainContext))
         .environment(SettingsStore())
 }
