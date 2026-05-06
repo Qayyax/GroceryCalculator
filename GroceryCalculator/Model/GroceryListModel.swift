@@ -111,6 +111,23 @@ final class ListsStore {
     // MARK: History
 
     func saveToHistory(_ list: GroceryList) {
+        let snapshot = GroceryList(
+            title: list.title,
+            dateCreated: list.dateCreated,
+            dateModified: Date(),
+            budget: list.budget,
+            isHistory: true,
+            notesData: list.notesData
+        )
+        list.items.forEach { item in
+            let copy = GroceryItem(name: item.name, unitPrice: item.unitPrice, quantity: item.quantity)
+            modelContext.insert(copy)
+            snapshot.items.append(copy)
+        }
+        modelContext.insert(snapshot)
+    }
+
+    func archiveList(_ list: GroceryList) {
         list.isHistory = true
         list.dateModified = Date()
     }

@@ -53,7 +53,7 @@ struct ListsView: View {
                                 }
                             }
                             .onDelete { indexSet in
-                                indexSet.forEach { listStore.deleteList(filteredLists[$0]) }
+                                indexSet.forEach { listStore.archiveList(filteredLists[$0]) }
                             }
                         }
                     } else {
