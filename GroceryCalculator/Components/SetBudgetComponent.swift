@@ -95,7 +95,7 @@ struct SetBudgetComponent: View {
 
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: GroceryList.self, GroceryItem.self, configurations: config)
+    let container: ModelContainer = try! ModelContainer(for: GroceryList.self, GroceryItem.self, configurations: config)
     let list = GroceryList(title: "Weekly Shop", budget: 150.00)
     container.mainContext.insert(list)
 
