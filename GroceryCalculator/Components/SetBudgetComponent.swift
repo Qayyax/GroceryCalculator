@@ -93,13 +93,13 @@ struct SetBudgetComponent: View {
     }
 }
 
-#Preview {
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container: ModelContainer = try! ModelContainer(for: GroceryList.self, GroceryItem.self, configurations: config)
-    let list = GroceryList(title: "Weekly Shop", budget: 150.00)
-    container.mainContext.insert(list)
-
-    SetBudgetComponent(list: list)
-        .modelContainer(container)
-        .environment(ListsStore(modelContext: container.mainContext))
-}
+//#Preview {
+//    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+//    let container: ModelContainer = try! ModelContainer(for: GroceryList.self, GroceryItem.self, configurations: config)
+//    let list = GroceryList(title: "Weekly Shop", budget: 150.00)
+//    container.mainContext.insert(list)
+//
+//    SetBudgetComponent(list: list)
+//        .modelContainer(container)
+//        .environment(ListsStore(modelContext: container.mainContext))
+//}
