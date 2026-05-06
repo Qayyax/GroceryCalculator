@@ -144,5 +144,10 @@ public final class ListsStore {
         if let budget { lists[idx].budget = budget }
         lists[idx].dateModified = Date()
     }
+
+    @MainActor
+    public func clearHistory() {
+        history.removeAll()
+    }
 }
 

@@ -10,18 +10,26 @@ import SwiftUI
 struct GroceryItemComponent: View {
     let item: GroceryItem
     let onQuantityChange: (Int) -> Void
-    
+
+    @Environment(SettingsStore.self) private var settingsStore
+
     private func formattedAmount(_ value: Decimal) -> String {
         let number = NSDecimalNumber(decimal: value)
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
+        formatter.currencyCode = settingsStore.selectedCurrency
         return formatter.string(from: number) ?? "$0.00"
     }
-    
+
     private var currentTotal: Decimal {
         item.unitPrice * Decimal(item.quantity)
     }
-    
+
+    private var taxInclusiveTotal: Decimal? {
+        guard settingsStore.taxMultiplier != 1 else { return nil }
+        return currentTotal * settingsStore.taxMultiplier
+    }
+
     var body: some View {
         VStack(spacing: 4) {
             HStack(alignment: .top) {
@@ -32,8 +40,15 @@ struct GroceryItemComponent: View {
                         .foregroundStyle(.itemAmountGray)
                 }
                 Spacer()
-                Text(formattedAmount(currentTotal))
-                    .font(.title2.bold())
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(formattedAmount(currentTotal))
+                        .font(.title2.bold())
+                    if let taxTotal = taxInclusiveTotal {
+                        Text(formattedAmount(taxTotal))
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.accent)
+                    }
+                }
             }
             .padding(.bottom, 14)
             HStack {
@@ -55,7 +70,6 @@ struct GroceryItemComponent: View {
                 )
                 Spacer()
             }
-        
         }
     }
 }
@@ -72,14 +86,16 @@ struct GroceryItemComponent: View {
         }
     )
     .padding()
+    .environment(SettingsStore())
 }
+
 // MARK: - StepperView (Non-Binding Version)
 private struct StepperView: View {
     let value: Int
     let range: ClosedRange<Int>
     let onIncrement: () -> Void
     let onDecrement: () -> Void
-    
+
     var body: some View {
         HStack(spacing: 0) {
             Button {
@@ -95,11 +111,11 @@ private struct StepperView: View {
                     .stroke(.buttonStrokeGray, lineWidth: 0.5)
             }
             .disabled(value <= range.lowerBound)
-            
+
             Text("\(value)")
                 .foregroundStyle(.itemAmountGray)
                 .frame(width: 60, height: 40)
-                .background{
+                .background {
                     Rectangle()
                         .stroke(.buttonStrokeGray, lineWidth: 0.5)
                 }
@@ -120,4 +136,3 @@ private struct StepperView: View {
         }
     }
 }
-

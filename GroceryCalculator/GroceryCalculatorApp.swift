@@ -10,11 +10,13 @@ import SwiftUI
 @main
 struct GroceryCalculatorApp: App {
     @State private var listStore = ListsStore()
-    
+    @State private var settingsStore = SettingsStore()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(listStore)
+                .environment(settingsStore)
                 .preferredColorScheme(.light) // Force light mode at app level
         }
     }

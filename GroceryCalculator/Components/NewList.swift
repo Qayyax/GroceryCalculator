@@ -9,11 +9,12 @@ import SwiftUI
 
 struct NewList: View {
     var onSave: (String, Double) -> Void = { _, _ in }
-    
+
     @State private var title: String = ""
     @State private var budget: String = ""
     @FocusState private var focusedField: Field?
     @Environment(\.dismiss) private var dismiss
+    @Environment(SettingsStore.self) private var settingsStore
     
     private enum Field: Hashable { case title, budget }
     
@@ -46,7 +47,7 @@ struct NewList: View {
                 if let budgetValue {
                     Section("Summary") {
                         LabeledContent("Title", value: title.isEmpty ? "-" : title)
-                        LabeledContent("Budget", value: budgetValue.formatted(.currency(code: Locale.current.currency?.identifier ?? "USD")))
+                        LabeledContent("Budget", value: budgetValue.formatted(.currency(code: settingsStore.selectedCurrency)))
                     }
                 }
             }
@@ -68,4 +69,5 @@ struct NewList: View {
 
 #Preview {
     NewList()
+        .environment(SettingsStore())
 }

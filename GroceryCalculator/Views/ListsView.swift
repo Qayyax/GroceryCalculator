@@ -96,4 +96,5 @@ struct ListsView: View {
 #Preview {
     ListsView()
         .environment(ListsStore())
+        .environment(SettingsStore())
 }

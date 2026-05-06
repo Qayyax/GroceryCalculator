@@ -75,4 +75,5 @@ struct HistoryView: View {
 #Preview {
     HistoryView()
         .environment(ListsStore())
+        .environment(SettingsStore())
 }

@@ -14,6 +14,7 @@ struct ListDetailsView: View {
     @State private var showingNotes = false
     @State private var showingSetBudget = false
     @Environment(ListsStore.self) private var listStore
+    @Environment(SettingsStore.self) private var settingsStore
     
     // Computed property to get the current list from the store
     private var groceryList: GroceryList? {
@@ -22,6 +23,14 @@ struct ListDetailsView: View {
 
     private var isHistoryItem: Bool {
         listStore.history.contains(where: { $0.id == groceryListID })
+    }
+
+    private func effectiveSpent(for list: GroceryList) -> Decimal {
+        list.amountSpent * settingsStore.taxMultiplier
+    }
+
+    private func effectiveRemaining(for list: GroceryList) -> Decimal {
+        list.budget - effectiveSpent(for: list)
     }
 
     var body: some View {
@@ -106,8 +115,8 @@ struct ListDetailsView: View {
         VStack(spacing: 0) {
             BudgetCard(
                 budget: list.budget,
-                remaining: list.remaining,
-                spent: list.amountSpent
+                remaining: effectiveRemaining(for: list),
+                spent: effectiveSpent(for: list)
             )
             .padding(.horizontal)
             .padding(.top)
@@ -177,7 +186,8 @@ struct ListDetailsView: View {
     let store = ListsStore()
     let sampleList = GroceryList(id: UUID(), title: "Fish", budget: 200.34 as Decimal)
     store.lists.append(sampleList)
-    
+
     return ListDetailsView(groceryListID: sampleList.id)
         .environment(store)
+        .environment(SettingsStore())
 }

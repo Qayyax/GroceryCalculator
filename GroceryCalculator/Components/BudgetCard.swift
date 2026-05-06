@@ -12,23 +12,25 @@ struct BudgetCard: View {
     let remaining: Decimal
     let spent: Decimal
     @State private var isPresented: Bool
-    
+
+    @Environment(SettingsStore.self) private var settingsStore
+
     init(budget: Decimal, remaining: Decimal, spent: Decimal, isPresented: Bool = true) {
         self.budget = budget
         self.remaining = remaining
         self.spent = spent
         _isPresented = State(initialValue: isPresented)
     }
-    
+
     private func formattedAmount(_ value: Decimal) -> String {
         if !isPresented { return "****" }
         let number = NSDecimalNumber(decimal: value)
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
-        // Uses current locale currency symbol
+        formatter.currencyCode = settingsStore.selectedCurrency
         return formatter.string(from: number) ?? "$0.00"
     }
-    
+
     var body: some View {
         VStack {
             // Top section
@@ -40,7 +42,7 @@ struct BudgetCard: View {
                         .foregroundStyle(.budgetBlue)
                 }
                 Spacer()
-                
+
                 VStack(alignment: .trailing) {
                     Text("Remaining Funds")
                     Text(formattedAmount(remaining))
@@ -49,6 +51,7 @@ struct BudgetCard: View {
                 }
             }
             .padding(.bottom, 45)
+
             // Bottom section
             HStack {
                 Spacer()
@@ -60,21 +63,27 @@ struct BudgetCard: View {
                             .font(.system(size: 24))
                             .foregroundStyle(.eyeGray)
                     }
-                    
-                    if isPresented {
-                        Text(formattedAmount(spent))
-                            .font(.system(size: 48).bold())
-                    } else {
-                        HStack(spacing: 6.49) {
-                            ForEach(0..<4, id: \.self) { _ in
-                                Image(systemName: "asterisk")
-                                    .font(.system(size: 24).bold())
+
+                    VStack(alignment: .trailing, spacing: 2) {
+                        if isPresented {
+                            Text(formattedAmount(spent))
+                                .font(.system(size: 48).bold())
+                        } else {
+                            HStack(spacing: 6.49) {
+                                ForEach(0..<4, id: \.self) { _ in
+                                    Image(systemName: "asterisk")
+                                        .font(.system(size: 24).bold())
+                                }
                             }
-                       }
+                        }
+                        if settingsStore.taxInclusive && settingsStore.taxPercentage > 0 {
+                            Text("Tax inclusive")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.accent)
+                        }
                     }
                 }
             }
-            
         }
         .padding()
         .background {
@@ -89,6 +98,7 @@ struct BudgetCard: View {
         Color.primaryBg
         BudgetCard(budget: 200, remaining: 150, spent: 50, isPresented: true)
             .padding()
+            .environment(SettingsStore())
     }
 }
 #Preview("Over Budget") {
@@ -96,6 +106,6 @@ struct BudgetCard: View {
         Color.primaryBg
         BudgetCard(budget: 200, remaining: -25, spent: 225, isPresented: true)
             .padding()
+            .environment(SettingsStore())
     }
 }
-
