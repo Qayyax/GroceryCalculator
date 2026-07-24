@@ -11,15 +11,38 @@ import SwiftData
 struct ContentView: View {
     
     var body: some View {
-        TabView {
-            Tab(Constants.Tabs.listPageTitle, systemImage: Constants.Tabs.listPageIcon) {
+        if #available(iOS 18.0, *) {
+            TabView {
+                Tab(Constants.Tabs.listPageTitle, systemImage: Constants.Tabs.listPageIcon) {
+                    ListsView()
+                }
+                Tab(Constants.Tabs.historyPageTitle, systemImage: Constants.Tabs.historyPageIcon) {
+                    HistoryView()
+                }
+                Tab(Constants.Tabs.settingsPageTitle, systemImage: Constants.Tabs.settingsPageIcon) {
+                    SettingsView()
+                }
+            }
+        } else {
+            // Fallback for iOS < 18 using classic .tabItem API
+            TabView {
                 ListsView()
-            }
-            Tab(Constants.Tabs.historyPageTitle, systemImage: Constants.Tabs.historyPageIcon) {
+                    .tabItem {
+                        Image(systemName: Constants.Tabs.listPageIcon)
+                        Text(Constants.Tabs.listPageTitle)
+                    }
+
                 HistoryView()
-            }
-            Tab(Constants.Tabs.settingsPageTitle, systemImage: Constants.Tabs.settingsPageIcon) {
+                    .tabItem {
+                        Image(systemName: Constants.Tabs.historyPageIcon)
+                        Text(Constants.Tabs.historyPageTitle)
+                    }
+
                 SettingsView()
+                    .tabItem {
+                        Image(systemName: Constants.Tabs.settingsPageIcon)
+                        Text(Constants.Tabs.settingsPageTitle)
+                    }
             }
         }
     }
